@@ -1,3 +1,4 @@
+
 # Python 缓存文件
 __pycache__/
 *.py[cod]
@@ -14,7 +15,7 @@ datasets/
 *.h5
 *.npz
 
-CICIDS/
+save_model/
 *.csv
 *.pth
 *.pt

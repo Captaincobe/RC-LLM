@@ -76,6 +76,19 @@ def generate_random_partition_indices(num_nodes, train_ratio=0.03, val_ratio=0.4
     
     return train_indices, val_indices, test_indices
 
+# def generate_random_partition_indices(num_nodes, val_ratio=0.5, test_ratio=0.5):
+#     assert val_ratio + test_ratio == 1.0
+
+#     all_indices = np.arange(num_nodes)
+#     np.random.seed(9977)  # 为复现实验设置固定种子
+#     np.random.shuffle(all_indices)
+
+#     val_size = int(num_nodes * val_ratio)
+#     val_indices = all_indices[:val_size]
+#     test_indices = all_indices[val_size:]
+
+#     return val_indices, test_indices
+
 
 def create_multi_view_data(args):
     dataset_name = args.dataset_name
@@ -83,12 +96,12 @@ def create_multi_view_data(args):
     out_path = f"datasets/{dataset_name}/outputs" # datasets/CICIDS/outputs/embeddings_200_3.npy
     texthead = args.texthead
     index = 3
-    DATA_PATH = f"../datasets/{dataset_name}/raw/dataset.csv"
+    DATA_PATH = f"datasets/{dataset_name}/desctiptions_{texthead}_{index}.csv"
     OUT_EMB = f"{out_path}/embeddings_{texthead}_{index}.npy"
 
     desc_embeddings = np.load(OUT_EMB)
     df_raw = pd.read_csv(DATA_PATH).head(texthead)
-    X_raw = df_raw.drop(columns=['Timestamp', 'src_ip', 'src_port', 'dst_ip', 'dst_port', 'label'], errors="ignore").values  # shape: (10, D)
+    X_raw = df_raw.drop(columns=['Timestamp', 'src_ip', 'src_port', 'dst_ip', 'dst_port', 'label','description'], errors="ignore").values  # shape: (10, D)
 
     # 可选标签字段
     y = df_raw["label"].values  
@@ -101,7 +114,8 @@ def create_multi_view_data(args):
 
 
 def load_data(args, DATA_PATH, logger=None):
-    data = ECMLDataset(DATA_PATH)
+    data = ECMLDataset(f"{DATA_PATH}/multi_view_{args.texthead}.npz")
+    # data = np.load(f"{DATA_PATH}/test_data.npy", allow_pickle=True)
 
     # dataset = args.dataset_name
     # device = args.device
@@ -113,23 +127,22 @@ def load_data(args, DATA_PATH, logger=None):
 
     # data = graph[0]
 
-    # num_nodes = data.num_nodes
     num_smaples = data.num_samples
+    # val_indices, test_indices = generate_random_partition_indices(num_samples, val_ratio=0.5, test_ratio=0.5)
     train_indices, val_indices, test_indices = generate_random_partition_indices(num_smaples, train_ratio=args.train_ratio)
     data.test = test_indices
-    data.train = train_indices
+    # data.train = train_indices
     data.val = val_indices
     
     features = data.X
     labels = data.Y
     # num_nodes = data.num_nodes
     n_class = len(set(labels))
-    data.X = [torch.tensor(x, dtype=torch.float32) for x in data.X]
+    data.X = [torch.tensor(x, dtype=torch.float32) for x in features]
     data.Y = torch.tensor(labels, dtype=torch.long)
 
     if logger is not None:
         logger.info(f'Class: {n_class}')
-        logger.info(f'Number of edge: {data.num_edges}')
         logger.info(SEPARATOR)
     return data, n_class, train_indices, val_indices, test_indices, logger
     

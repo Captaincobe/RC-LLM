@@ -52,6 +52,21 @@ def build_prompt(dataset, features):
         1. The type of network traffic and the nature of the protocol used.
         2. The directionality and intensity of communication.
         3. Any potential signs of abnormal or malicious behavior based on the observed metrics."""
+    elif dataset == 'DoHBrw':
+        prompt = f"""The following is a summary of a DoH (DNS over HTTPS) network session:
+        - Source IP and Port: {features['src_ip']}:{features['src_port']}
+        - Destination IP and Port: {features['dst_ip']}:{features['dst_port']}
+        - Duration: {features['Duration']} seconds
+        - Bytes Sent: {features['FlowBytesSent']}, Received: {features['FlowBytesReceived']}
+        - Flow Rates - Sent: {features['FlowSentRate']} Bps, Received: {features['FlowReceivedRate']} Bps
+        - Avg. Packet Length: {features['PacketLengthMean']}, Std Dev: {features['PacketLengthStandardDeviation']}
+        - Packet Timing - Mean Interval: {features['PacketTimeMean']} s, Std Dev: {features['PacketTimeStandardDeviation']}
+        - Response Time Mean: {features['ResponseTimeTimeMean']} s
+
+        Based on this information, generate a **concise one-sentence description** that captures:
+        1. The nature of the traffic flow (e.g., interactive, bursty, idle).
+        2. Communication intensity and direction.
+        3. Any observable patterns that may imply typical or anomalous behavior."""
     else:
         encryption = "Encrypted with TLS {}".format(features["c_TLSvers"]) if features["c_iscrypto"] == 1 else "Unencrypted communication"
         prompt = f"""Below is a summary of a network traffic session:

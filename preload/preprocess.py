@@ -19,7 +19,7 @@ def parse_arguments():
     parser.add_argument('--num_all', type=int, default=1000000, choices=[2000, 5000])
     parser.add_argument('--b', dest='b', action='store_true', default=False,
                         help='True if you want binary classification.')
-    parser.add_argument('--n_small', type=int, default=2000)
+    parser.add_argument('--n_small', type=int, default=1000)
     parser.add_argument('--seed', type=int, default=9999)
     return parser.parse_args()
 

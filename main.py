@@ -19,7 +19,7 @@ texthead = args.texthead
 annealing_epoch = args.annealing_epoch
 dataset_name = args.dataset_name
 out_path = f"{dataset_name}/outputs"
-SAVE_PATH = f"{out_path}/best_model.pth"
+SAVE_PATH = f"save_model/{dataset_name}_best_model.pth"
 DATA_PATH = f"datasets/{out_path}/multi_view_{texthead}.npz"
 
 
@@ -30,18 +30,19 @@ if not os.path.exists(DATA_PATH):
 # 
 args = parameter_parser()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-data, n_class, idx_train, idx_val, idx_test, logger = load_data(args, DATA_PATH)
-input_dims = [data.X[0].shape[1], data.X[1].shape[1]]  # (200, 384), (200, 130)
-num_classes = len(np.unique(data.Y))
-labels = data.Y
+data_train, data, n_class, idx_val, idx_test, logger = load_data(args, f"datasets/{out_path}/")
+print(f'train: {data_train.num_samples}, val: {len(idx_val)}, test: {len(idx_test)}')
+input_dims = [data_train.X[0].shape[1], data_train.X[1].shape[1]]  # (200, 384), (200, 130)
+num_classes = len(np.unique(data_train.Y))
+labels = data_train.Y
 #
 # model = build_rcml(input_dims, num_classes)
-model = LLM_RC(data=data, num_classes=num_classes).to(device)
+model = LLM_RC(data=data_train, num_classes=num_classes).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
-x1 = data.X[0][idx_train].to(device) # shape ([20, 384])
-x2 = data.X[1][idx_train].to(device) # shape ([20, 130])
-target = labels[idx_train].to(device)
+x1 = data_train.X[0].to(device) # shape ([20, 384])
+x2 = data_train.X[1].to(device) # shape ([20, 130])
+target = labels.to(device)
 
 x1_val = data.X[0][idx_val].to(device)
 x2_val = data.X[1][idx_val].to(device)

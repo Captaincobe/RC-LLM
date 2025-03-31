@@ -96,7 +96,6 @@ class LLM_RC(nn.Module):
         return (e1+e2)/2
 
     def forward(self, x, x_glo):
-
         evidence = F.softplus(self.encoder(x))
         evidence_glo = F.softplus(self.encoder_2(x_glo))
 

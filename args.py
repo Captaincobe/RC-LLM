@@ -22,7 +22,7 @@ def parameter_parser():
     parser.add_argument('--epo', dest='epochs', type=int, default=500)
     parser.add_argument("--annealing_epoch", type=int, default=5)
     parser.add_argument('--batch', dest='batch_size', type=int, default=16)
-    parser.add_argument('--texthead', dest='texthead', type=int, default=200)
+    parser.add_argument('--texthead', dest='texthead', type=int, default=1000)
     parser.add_argument('--run', dest='run', type=int, default=1)
     parser.add_argument('--patience', type=int, default=500)
     parser.add_argument('--hid', dest='hid', type=int, default=64)

@@ -24,7 +24,23 @@ def extract_key_features(dataset_name, row):
             "active_mean": round(row["Active Mean"], 2),
             "idle_mean": round(row["Idle Mean"], 2),
         }
-    # "label": row.get("Label", "Benign"),
+    elif dataset_name == "DoHBrw":
+        return {
+            "src_ip": row["src_ip"],
+            "src_port": row["src_port"],
+            "dst_ip": row["dst_ip"],
+            "dst_port": row["dst_port"],
+            "Duration": row["Duration"],
+            "FlowBytesSent": row["FlowBytesSent"],
+            "FlowBytesReceived": row["FlowBytesReceived"],
+            "FlowSentRate": row["FlowSentRate"],
+            "FlowReceivedRate": row["FlowReceivedRate"],
+            "PacketLengthMean": row["PacketLengthMean"],
+            "PacketLengthStandardDeviation": row["PacketLengthStandardDeviation"],
+            "PacketTimeMean": row["PacketTimeMean"],
+            "PacketTimeStandardDeviation": row["PacketTimeStandardDeviation"],
+            "ResponseTimeTimeMean": row["ResponseTimeTimeMean"],
+        }
     else:
         return {
             "browser": row.get("browser", "unkonwn"),

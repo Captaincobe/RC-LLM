@@ -4,10 +4,11 @@ import torch
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from features import extract_key_features
 from prompt_builder import build_prompt, generate_description
-from embedder import encode_descriptions
 import pandas as pd
 import numpy as np
 from args import parameter_parser
+
+from sentence_transformers import SentenceTransformer
 
 from transformers import GPT2LMHeadModel,AutoTokenizer, AutoModelForCausalLM
 args = parameter_parser()
@@ -17,20 +18,19 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 # tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct", trust_remote_code=True) # {"": device}
 tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct")  # QwQ-32B
 model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2-7B-Instruct", device_map="auto", low_cpu_mem_usage=True, trust_remote_code=True, offload_buffers=True)
+encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
+def encode_descriptions(desc_list):
+    embeddings = encoder_model.encode(desc_list, batch_size=16, show_progress_bar=True)
+    return np.array(embeddings)
 
 
-index = 3
-texthead = 200 # train_sapmles
-dataset_name = "CICIDS"  # CICIDS DoHBrw TONIoT
-out_path = f"{dataset_name}/outputs"
-DATA_PATH = f"datasets/{out_path}/text_data.csv"
-OUT_DESC = f"datasets/{out_path}/descriptions_{texthead}_{index}.csv"
-OUT_EMB = f"datasets/{out_path}/embeddings_{texthead}_{index}.npy"
+texthead = args.texthead # train_sapmles
+dataset_name = args.dataset_name  # CICIDS DoHBrw TONIoT
+out_path = f"datasets/{dataset_name}/outputs/"
+DATA_PATH = f"{out_path}/text_data.csv"
+OUT_DESC = f"{out_path}/descriptions.csv"
+OUT_EMB = f"{out_path}/embeddings.npy" # _{texthead}_{index}
 
-
-os.makedirs(out_path, exist_ok=True)
-os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
-os.makedirs(out_path, exist_ok=True)
 
 df = pd.read_csv(DATA_PATH)
 
@@ -50,7 +50,6 @@ else:
         batch_rows = df.iloc[i:i + batch_size]
         batch_descriptions = []
         for _, row in batch_rows.iterrows():
-            # print("Columns in current row:", row.index.tolist())
             features = extract_key_features(dataset_name, row)
             # print(f"Extracted features:\n{features}\n")
             prompt = build_prompt(dataset_name, features)
@@ -65,6 +64,7 @@ else:
     embeddings = encode_descriptions(descriptions)
     np.save(OUT_EMB, embeddings)
     print("编码完成，保存至:", OUT_EMB)
+
 
 
 
