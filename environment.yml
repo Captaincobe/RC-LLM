@@ -183,4 +183,3 @@ dependencies:
     - xlrd==2.0.1
     - yarl==1.9.4
     - zipp==3.20.1
-prefix: /home/uestc_zhou/anaconda3/envs/llm-graph

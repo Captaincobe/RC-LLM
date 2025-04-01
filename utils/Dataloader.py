@@ -94,13 +94,12 @@ def create_multi_view_data(args):
     dataset_name = args.dataset_name
     """ Train data"""
     out_path = f"datasets/{dataset_name}/outputs" # datasets/CICIDS/outputs/embeddings_200_3.npy
-    texthead = args.texthead
-    index = 3
-    DATA_PATH = f"datasets/{dataset_name}/desctiptions_{texthead}_{index}.csv"
-    OUT_EMB = f"{out_path}/embeddings_{texthead}_{index}.npy"
+    # texthead = args.texthead
+    DATA_PATH = f"{out_path}/descriptions.csv"
+    OUT_EMB = f"{out_path}/embeddings.npy"
 
     desc_embeddings = np.load(OUT_EMB)
-    df_raw = pd.read_csv(DATA_PATH).head(texthead)
+    df_raw = pd.read_csv(DATA_PATH)
     X_raw = df_raw.drop(columns=['Timestamp', 'src_ip', 'src_port', 'dst_ip', 'dst_port', 'label','description'], errors="ignore").values  # shape: (10, D)
 
     # 可选标签字段
@@ -110,11 +109,11 @@ def create_multi_view_data(args):
         "view_2": X_raw,           
         "label": y                 
     }
-    np.savez(f"{out_path}/multi_view_{texthead}.npz", **multi_view_data)
+    np.savez(f"{out_path}/multi_view.npz", **multi_view_data)
 
 
 def load_data(args, DATA_PATH, logger=None):
-    data = ECMLDataset(f"{DATA_PATH}/multi_view_{args.texthead}.npz")
+    data = ECMLDataset(f"{DATA_PATH}/multi_view.npz")
     # data = np.load(f"{DATA_PATH}/test_data.npy", allow_pickle=True)
 
     # dataset = args.dataset_name

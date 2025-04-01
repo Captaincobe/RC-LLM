@@ -30,19 +30,19 @@ if not os.path.exists(DATA_PATH):
 # 
 args = parameter_parser()
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-data_train, data, n_class, idx_val, idx_test, logger = load_data(args, f"datasets/{out_path}/")
-print(f'train: {data_train.num_samples}, val: {len(idx_val)}, test: {len(idx_test)}')
-input_dims = [data_train.X[0].shape[1], data_train.X[1].shape[1]]  # (200, 384), (200, 130)
-num_classes = len(np.unique(data_train.Y))
-labels = data_train.Y
+data, n_class, idx_train, idx_val, idx_test, logger = load_data(args, f"datasets/{out_path}/")
+print(f'train: {len(idx_train)}, val: {len(idx_val)}, test: {len(idx_test)}')
+input_dims = [data.X[0].shape[1], data.X[1].shape[1]]  # (200, 384), (200, 130)
+num_classes = len(np.unique(data.Y))
+labels = data.Y
 #
 # model = build_rcml(input_dims, num_classes)
-model = LLM_RC(data=data_train, num_classes=num_classes).to(device)
+model = LLM_RC(data=data, num_classes=num_classes).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 
-x1 = data_train.X[0].to(device) # shape ([20, 384])
-x2 = data_train.X[1].to(device) # shape ([20, 130])
-target = labels.to(device)
+x1 = data.X[0][idx_train].to(device) # shape ([20, 384])
+x2 = data.X[1][idx_train].to(device) # shape ([20, 130])
+target = labels[idx_train].to(device)
 
 x1_val = data.X[0][idx_val].to(device)
 x2_val = data.X[1][idx_val].to(device)
@@ -80,7 +80,7 @@ for epoch_i in range(EPOCHS):
     # avg_train_loss = total_loss / len(x1)
 
     # ----- Validation -----
-    if epoch_i % 10 == 0:
+    if epoch_i % 50 == 0:
         model.eval()
         with torch.no_grad():
             _, _, alpha_val = model(x1_val, x2_val)

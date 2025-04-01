@@ -15,26 +15,6 @@ class StopOnTokens(StoppingCriteria):
 
 def build_prompt(dataset, features):
 
-    # if dataset == 'CICIDS':
-    #     prompt = f"""Below is a summary of a network traffic flow session:
-    #     - Source IP: {features['src_ip']}:{features['src_port']}
-    #     - Destination IP: {features['dst_ip']}:{features['dst_port']}
-    #     - Protocol: {features['Protocol']}
-    #     - Flow Duration: {features["Flow Duration"]} μs
-    #     - Forward Packets: {features["Total Fwd Packets"]}, Backward Packets: {features["Total Backward Packets"]}
-    #     - Average Fwd Packet Length: {features["Fwd Packet Length Mean"]}, Bwd Packet Length: {features["Bwd Packet Length Mean"]}
-    #     - Flow rate: {features["Flow Packets"]} packets/s, {features["Flow Bytes/s"]} bytes/s
-    #     - Down/Up Ratio: {features["Down/Up Ratio"]} 
-    #     - Active mean time: {features["Active Mean"]}, Idle mean time: {features["Idle Mean"]}
-    #     - Labeled behavior: {features["label"]}
-
-    #     Please summarize this session in **one concise sentence**, describing:
-    #     1. The traffic type and protocol behavior.
-    #     2. The communication direction and intensity.
-    #     3. Any potential security risks based on the pattern."""
-
-        # - Down/Up Ratio: {features["Down/Up Ratio"]}
-        # - Labeled Behavior: {features["label"]}
 
     if dataset == 'CICIDS':
         prompt = f"""The following is a summary of a network traffic flow session:
@@ -52,6 +32,30 @@ def build_prompt(dataset, features):
         1. The type of network traffic and the nature of the protocol used.
         2. The directionality and intensity of communication.
         3. Any potential signs of abnormal or malicious behavior based on the observed metrics."""
+    elif dataset == 'TONIoT':
+        prompt = f"""The following is a summary of an encrypted network session:
+        - Timestamp: {features['Timestamp']}
+        - Source IP and Port: {features['src_ip']}:{features['src_port']}
+        - Destination IP and Port: {features['dst_ip']}:{features['dst_port']}
+        - Protocol: {features['protocol']}
+        - Connection State: {features['conn_state']}
+        - Duration: {features['duration']} seconds
+        - Bytes Sent: {features['src_bytes']}, Received: {features['dst_bytes']}
+        - Packets Sent: {features['src_pkts']}, Received: {features['dst_pkts']}
+        - SSL Version: {features['ssl_version']}
+        - SSL Cipher: {features['ssl_cipher']}
+        - SSL Established: {features['ssl_established']}
+        - SSL Resumed: {features['ssl_resumed']}
+        - SSL Subject: {features['ssl_subject']}
+        - SSL Issuer: {features['ssl_issuer']}
+        - Any TLS anomalies (e.g., weird events): {features['weird_name']}
+
+        Please summarize this session in **one concise and informative sentence**, addressing the following:
+        1. The type of network traffic and the nature of the protocol used.
+        2. The directionality and intensity of communication.
+        3. Characteristics of the TLS handshake (e.g., version, cipher, session resumption).
+        4. Any potential signs of abnormal or malicious behavior based on the observed metrics.
+        """
     elif dataset == 'DoHBrw':
         prompt = f"""The following is a summary of a DoH (DNS over HTTPS) network session:
         - Source IP and Port: {features['src_ip']}:{features['src_port']}
@@ -82,8 +86,8 @@ def build_prompt(dataset, features):
         Summarize this traffic in one sentence, including type, communication pattern, and any potential risks."""
 
     return prompt
-
-
+        # - Missed bytes: {features['missed_bytes']}
+        # - Service: {features['service']}
 
 def chat(messages, model, tokenizer, max_tokens=256):
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -107,10 +111,9 @@ def chat(messages, model, tokenizer, max_tokens=256):
 
 
 def generate_description(model, tokenizer, prompt):
-    torch.cuda.empty_cache()
+    # torch.cuda.empty_cache()
     try:
         start = time.time() 
-
         response = chat([
             {"role": "system", "content": "You are a helpful cybersecurity assistant."},
             {"role": "user", "content": f"Please generate a concise description based on the following features: {prompt}"}
@@ -126,6 +129,26 @@ def generate_description(model, tokenizer, prompt):
 
 
 
+    # if dataset == 'CICIDS':
+    #     prompt = f"""Below is a summary of a network traffic flow session:
+    #     - Source IP: {features['src_ip']}:{features['src_port']}
+    #     - Destination IP: {features['dst_ip']}:{features['dst_port']}
+    #     - Protocol: {features['Protocol']}
+    #     - Flow Duration: {features["Flow Duration"]} μs
+    #     - Forward Packets: {features["Total Fwd Packets"]}, Backward Packets: {features["Total Backward Packets"]}
+    #     - Average Fwd Packet Length: {features["Fwd Packet Length Mean"]}, Bwd Packet Length: {features["Bwd Packet Length Mean"]}
+    #     - Flow rate: {features["Flow Packets"]} packets/s, {features["Flow Bytes/s"]} bytes/s
+    #     - Down/Up Ratio: {features["Down/Up Ratio"]} 
+    #     - Active mean time: {features["Active Mean"]}, Idle mean time: {features["Idle Mean"]}
+    #     - Labeled behavior: {features["label"]}
+
+    #     Please summarize this session in **one concise sentence**, describing:
+    #     1. The traffic type and protocol behavior.
+    #     2. The communication direction and intensity.
+    #     3. Any potential security risks based on the pattern."""
+
+        # - Down/Up Ratio: {features["Down/Up Ratio"]}
+        # - Labeled Behavior: {features["label"]}
 
 
 # def generate_description(prompt):

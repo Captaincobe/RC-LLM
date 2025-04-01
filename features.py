@@ -24,6 +24,28 @@ def extract_key_features(dataset_name, row):
             "active_mean": round(row["Active Mean"], 2),
             "idle_mean": round(row["Idle Mean"], 2),
         }
+    elif dataset_name == "TONIoT":
+        return {
+            "Timestamp": row["Timestamp"],
+            "src_ip": row["src_ip"],
+            "src_port": row["src_port"],
+            "dst_ip": row["dst_ip"],
+            "dst_port": row["dst_port"],
+            "protocol": row["proto"], 
+            "conn_state": row["conn_state"],
+            "duration": row["duration"],
+            "src_bytes": row["src_bytes"],
+            "dst_bytes": row["dst_bytes"],
+            "src_pkts": row["src_pkts"],
+            "dst_pkts": row["dst_pkts"],
+            "ssl_version": row["ssl_version"],
+            "ssl_cipher": row["ssl_cipher"],
+            "ssl_established": row["ssl_established"],
+            "ssl_resumed": row["ssl_resumed"],
+            "ssl_subject": row["ssl_subject"],
+            "ssl_issuer": row["ssl_issuer"],
+            "weird_name": row["weird_name"],
+        }
     elif dataset_name == "DoHBrw":
         return {
             "src_ip": row["src_ip"],

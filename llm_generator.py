@@ -26,7 +26,7 @@ def encode_descriptions(desc_list):
 
 texthead = args.texthead # train_sapmles
 dataset_name = args.dataset_name  # CICIDS DoHBrw TONIoT
-out_path = f"datasets/{dataset_name}/outputs/"
+out_path = f"datasets/{dataset_name}/outputs"
 DATA_PATH = f"{out_path}/text_data.csv"
 OUT_DESC = f"{out_path}/descriptions.csv"
 OUT_EMB = f"{out_path}/embeddings.npy" # _{texthead}_{index}
@@ -59,6 +59,7 @@ else:
         descriptions.extend(batch_descriptions)
         # df.loc[i:i + batch_size - 1, "description"] = batch_descriptions
         df.iloc[i:i + len(batch_descriptions), df.columns.get_loc("description")] = batch_descriptions
+        print(f"~[Batch {i // batch_size + 1}]: Done")
     df.to_csv(OUT_DESC, index=False)
     print("开始编码文本...")
     embeddings = encode_descriptions(descriptions)
