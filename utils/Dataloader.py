@@ -127,7 +127,6 @@ def load_data(args, DATA_PATH, logger=None):
     # data = graph[0]
 
     num_smaples = data.num_samples
-    # val_indices, test_indices = generate_random_partition_indices(num_samples, val_ratio=0.5, test_ratio=0.5)
     train_indices, val_indices, test_indices = generate_random_partition_indices(num_smaples, train_ratio=args.train_ratio)
     data.test = test_indices
     # data.train = train_indices

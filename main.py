@@ -3,7 +3,7 @@ import time
 import torch
 import numpy as np
 
-from RCML.model import RCML
+# from RCML.model import RCML
 
 from utils.model import LLM_RC
 from args import parameter_parser
@@ -12,15 +12,14 @@ from utils.loss import ce_loss, get_dc_loss
 
 
 args = parameter_parser()
-LR = args.lr
 EPOCHS = args.epochs
-BATCH_SIZE = args.batch_size
-texthead = args.texthead
+# BATCH_SIZE = args.batch_size
+# texthead = args.texthead
 annealing_epoch = args.annealing_epoch
 dataset_name = args.dataset_name
 out_path = f"{dataset_name}/outputs"
-SAVE_PATH = f"save_model/{dataset_name}_best_model.pth"
-DATA_PATH = f"datasets/{out_path}/multi_view_{texthead}.npz"
+SAVE_PATH = f"save_model/{dataset_name}/{args.dc_loss}_best_model.pth"
+DATA_PATH = f"datasets/{out_path}/multi_view.npz"
 
 
 os.makedirs(os.path.dirname(SAVE_PATH), exist_ok=True)
@@ -29,16 +28,18 @@ if not os.path.exists(DATA_PATH):
 
 # 
 args = parameter_parser()
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device(f'cuda:{args.cuda}' if torch.cuda.is_available() else 'cpu')
+
+# print(f"🚀 Using device: {device}")
 data, n_class, idx_train, idx_val, idx_test, logger = load_data(args, f"datasets/{out_path}/")
 print(f'train: {len(idx_train)}, val: {len(idx_val)}, test: {len(idx_test)}')
 input_dims = [data.X[0].shape[1], data.X[1].shape[1]]  # (200, 384), (200, 130)
 num_classes = len(np.unique(data.Y))
 labels = data.Y
-#
+
 # model = build_rcml(input_dims, num_classes)
-model = LLM_RC(data=data, num_classes=num_classes).to(device)
-optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+model = LLM_RC(data=data, num_classes=num_classes, dropout=args.dropout, hid=args.hid).to(device)
+optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
 x1 = data.X[0][idx_train].to(device) # shape ([20, 384])
 x2 = data.X[1][idx_train].to(device) # shape ([20, 130])
@@ -57,17 +58,24 @@ y_test = labels[idx_test].to(device)
 best_acc = 0.0
 acc_val = 0.0
 
+patience = args.patience
+no_improve_counter = 0
+
 for epoch_i in range(EPOCHS):
     t0_epoch, t0_batch = time.time(), time.time()
     total_loss, batch_loss, batch_counts = 0, 0, 0
     model.train()
     # for step, batch in enumerate(train_loader):
     alpha_1, alpha_2, alpha_a = model(x1, x2)
-    loss = ce_loss(target, alpha_1, num_classes, epoch_i, annealing_epoch) + \
-            ce_loss(target, alpha_2, num_classes, epoch_i, annealing_epoch) + \
-            ce_loss(target, alpha_a, num_classes, epoch_i, annealing_epoch) + \
-                get_dc_loss([alpha_1,alpha_2], device='cuda')
-                
+
+    if args.wo_view1:
+        loss = ce_loss(target, alpha_2, num_classes, epoch_i, annealing_epoch)
+                #  + \ args.dc_loss * get_dc_loss([alpha_2], device=device)
+    else:
+        loss = ce_loss(target, alpha_1, num_classes, epoch_i, annealing_epoch) + \
+                ce_loss(target, alpha_2, num_classes, epoch_i, annealing_epoch) + \
+                ce_loss(target, alpha_a, num_classes, epoch_i, annealing_epoch) + \
+                    args.dc_loss * get_dc_loss([alpha_1,alpha_2], device=device)
         
     loss = torch.mean(loss)
     loss.backward()
@@ -96,8 +104,17 @@ for epoch_i in range(EPOCHS):
         best_acc = acc_val
         torch.save(model.state_dict(), SAVE_PATH)
         print(f"✅ Best model saved at epoch {epoch_i}, acc = {acc_val:.4f}")
+        no_improve_counter = 0  # 重置
+    else:
+        no_improve_counter += 1
+        # print(f"⚠️  No improvement in val acc for {no_improve_counter} eval(s)")
+
+    if patience > 0 and no_improve_counter >= patience:
+        print(f"🛑 Early stopping triggered at epoch {epoch_i}")
+        break
 
 # ----------- TEST -------------
+model.load_state_dict(torch.load(SAVE_PATH, weights_only=True))
 model.eval()
 
 
@@ -132,9 +149,9 @@ print(f"🎯 Test Accuracy: {acc:.4f}")
 
 # print("✅ 训练完成，最优 acc =", best_acc)
 
-def build_rcml(input_dims, num_classes):
-    dims = []
-    for d in input_dims:
-        dims.append([d, 128, 64])
-    model = RCML(num_views=2, dims=dims, num_classes=num_classes)
-    return model
+# def build_rcml(input_dims, num_classes):
+#     dims = []
+#     for d in input_dims:
+#         dims.append([d, 128, 64])
+#     model = RCML(num_views=2, dims=dims, num_classes=num_classes)
+#     return model

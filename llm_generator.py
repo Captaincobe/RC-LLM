@@ -24,7 +24,7 @@ def encode_descriptions(desc_list):
     return np.array(embeddings)
 
 
-texthead = args.texthead # train_sapmles
+# texthead = args.texthead # train_sapmles
 dataset_name = args.dataset_name  # CICIDS DoHBrw TONIoT
 out_path = f"datasets/{dataset_name}/outputs"
 DATA_PATH = f"{out_path}/text_data.csv"

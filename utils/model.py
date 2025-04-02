@@ -9,7 +9,7 @@ import math
 
 
 class LLM_RC(nn.Module):
-    def __init__(self, data, num_classes, v=0, att=False, sim=False, pse=True, hid: int = 128, dropout=0.5, use_bn = True):
+    def __init__(self, data, num_classes, hid: int = 128, dropout=0.5, use_bn = True):
         super(LLM_RC, self).__init__()
         torch.manual_seed(9999)
         torch.cuda.manual_seed(9999)
@@ -17,8 +17,6 @@ class LLM_RC(nn.Module):
         self.feat_2 = data.view2_features
         self.hid = hid
         self.num_classes = num_classes
-        self.att = att
-        self.sim = sim
         self.v = 0
         self.encoder = MLP_encoder(nfeat=self.feat_1,
                                  nhid=self.hid,
@@ -100,18 +98,18 @@ class LLM_RC(nn.Module):
         evidence_glo = F.softplus(self.encoder_2(x_glo))
 
 
-        if self.v == '0':
-            alpha_1,alpha_2 = evidence+1, evidence_glo+1
-            alpha_all = self.DS_Combin_two(alpha_1,alpha_2)
-            return alpha_1,alpha_2,alpha_all
+        # if self.v == '0':
+        #     alpha_1,alpha_2 = evidence+1, evidence_glo+1
+        #     alpha_all = self.DS_Combin_two(alpha_1,alpha_2)
+        #     return alpha_1,alpha_2,alpha_all
         
 
-        if self.att:
-            att_fuse = self.attention(evidence, evidence_glo)
-            return att_fuse
-        elif self.sim:
-            sim_fuse = self.Simple(evidence, evidence_glo)
-            return sim_fuse
+        # if self.att:
+        #     att_fuse = self.attention(evidence, evidence_glo)
+        #     return att_fuse
+        # elif self.sim:
+        #     sim_fuse = self.Simple(evidence, evidence_glo)
+        #     return sim_fuse
         
         alpha_1,alpha_2= evidence+1, evidence_glo+1
         alpha_all = self.DS_Combin_two(alpha_1,alpha_2)
