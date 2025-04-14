@@ -19,7 +19,7 @@ annealing_epoch = args.annealing_epoch
 dataset_name = args.dataset_name
 out_path = f"{dataset_name}/outputs"
 SAVE_PATH = f"save_model/{dataset_name}/{args.dc_loss}_best_model.pth"
-DATA_PATH = f"datasets/{out_path}/multi_view.npz"
+DATA_PATH = f"datasets/{out_path}/multi_view-concise-pro.npz"
 
 
 os.makedirs(os.path.dirname(SAVE_PATH), exist_ok=True)
@@ -127,31 +127,4 @@ with torch.no_grad():
 
 print(f"🎯 Test Accuracy: {acc:.4f}")
 
-    # model.eval()
-    # _, output = model(features)
 
-    # loss_val = (F.nll_loss(output[idx_val], labels[idx_val])).item()
-    # acc_val = accuracy(output[idx_val], labels[idx_val]).item()
-    # if early_stopping.check([acc_val, loss_val], epoch):
-    #     break
-    # acc_test = accuracy(output[idx_test], labels[idx_test]).item()
-
-    # if epoch % 50 == 0:
-    #     current_time = time.time()
-    #     tt = current_time - t
-    #     t = current_time
-    #     print('epoch:{} , acc_val:{:.4f} , acc_test:{:.4f}, time:{:.4f}s'.format(epoch, acc_val, acc_test, tt))
-    #     torch.save(feat, f'emd/{args.dataset_name}/{epoch}-emd.pkl')
-
-    # if acc > best_acc:
-    #     best_acc = acc
-    #     torch.save(model.state_dict(), SAVE_PATH)
-
-# print("✅ 训练完成，最优 acc =", best_acc)
-
-# def build_rcml(input_dims, num_classes):
-#     dims = []
-#     for d in input_dims:
-#         dims.append([d, 128, 64])
-#     model = RCML(num_views=2, dims=dims, num_classes=num_classes)
-#     return model

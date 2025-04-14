@@ -12,7 +12,6 @@ def KL(alpha, c):
     kl = torch.sum((alpha - beta) * (dg1 - dg0), dim=1, keepdim=True) + lnB + lnB_uni
     return kl
 
-
 def get_dc_loss(evidences, device):
     num_views = len(evidences)
     batch_size, num_classes = evidences[0].shape[0], evidences[0].shape[1]

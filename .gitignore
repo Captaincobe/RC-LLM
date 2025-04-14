@@ -1,0 +1,53 @@
+
+grid_search_runner.py
+test.ipynb
+prompt_builder_Chinese.py
+matrix.py
+
+# Python 缓存文件
+__pycache__/
+*.py[cod]
+*.so
+
+# Jupyter Notebook 的检查点
+.ipynb_checkpoints/
+
+# 数据集和模型文件
+datasets/
+*.csv
+*.pth
+*.pt
+*.h5
+*.npz
+
+save_model/
+*.csv
+*.pth
+*.pt
+*.h5
+*.npz
+
+
+RCML/
+*.csv
+*.pth
+*.pt
+*.h5
+*.npz
+
+# 虚拟环境
+env/
+venv/
+.llm-graph/
+
+# 日志和输出
+*.log
+outputs/
+logs/
+
+# VSCode 设置
+.vscode/
+
+# 系统文件
+.DS_Store
+Thumbs.db
