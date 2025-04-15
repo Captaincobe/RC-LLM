@@ -95,8 +95,8 @@ def create_multi_view_data(args):
     """ Train data"""
     out_path = f"datasets/{dataset_name}/outputs" # datasets/CICIDS/outputs/embeddings_200_3.npy
     # texthead = args.texthead
-    DATA_PATH = f"{out_path}/descriptions.csv"
-    OUT_EMB = f"{out_path}/embeddings.npy"
+    DATA_PATH = f"{out_path}/descriptions-concise.csv"
+    OUT_EMB = f"{out_path}/embeddings-concise.npy"  
 
     desc_embeddings = np.load(OUT_EMB)
     df_raw = pd.read_csv(DATA_PATH)
