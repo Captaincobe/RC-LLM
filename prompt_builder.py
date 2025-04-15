@@ -18,6 +18,7 @@ def build_prompt(dataset, features):
     feature_emb_path = f"{out_path}/feature_embeddings.npy"
     desc_path = f"{out_path}/descriptions-concise-pro.csv"
     
+    
     # 生成当前特征的嵌入
     current_embedding = encode_features(features)
     
