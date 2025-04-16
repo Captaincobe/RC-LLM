@@ -3,13 +3,14 @@ import random
 import torch
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from features import extract_key_features
-from prompt_builder import build_prompt, build_prompt_protocol, generate_description
+from prompt_builder import build_prompt, build_prompt_protocol, generate_description, agent_1, agent_2
 import pandas as pd
 import numpy as np
 from args import parameter_parser
 from sentence_transformers import SentenceTransformer
 from transformers import GPT2LMHeadModel,AutoTokenizer, AutoModelForCausalLM
 from utils.utils import encode_features, encode_descriptions, retrieve_similar_flows
+
 
 args = parameter_parser()
 device = torch.device(f"cuda:{args.cuda}" if torch.cuda.is_available() else "cpu")
@@ -19,8 +20,8 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # mistralai/Mistral-7B-Instruct-v0.2
 # tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct", trust_remote_code=True) # {"": device}
-tokenizer = AutoTokenizer.from_pretrained("HuggingFaceH4/zephyr-7b-alpha")  # QwQ-32B  Mistral-7B-Instruct-v0.3 google/gemma-3-27b-it  HuggingFaceH4/zephyr-7b-alpha TurkuNLP/gpt3-finnish-small
-model = AutoModelForCausalLM.from_pretrained("HuggingFaceH4/zephyr-7b-alpha", device_map="auto", low_cpu_mem_usage=True, trust_remote_code=True, offload_buffers=True)
+tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-7B-Instruct", trust_remote_code=True)  # QwQ-7B  Mistral-7B-Instruct-v0.3 google/gemma-3-27b-it  HuggingFaceH4/zephyr-7b-alpha TurkuNLP/gpt3-finnish-small
+model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-7B-Instruct", device_map="auto", low_cpu_mem_usage=True, trust_remote_code=True, offload_buffers=True)
 encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
@@ -29,7 +30,8 @@ dataset_name = args.dataset_name  # CICIDS DoHBrw TONIoT
 out_path = f"datasets/{dataset_name}/outputs"
 DATA_PATH = f"{out_path}/text_data.csv"
 OUT_DESC = f"{out_path}/descriptions-concise-pro.csv"
-OUT_EMB = f"{out_path}/embeddings-concise-pro.npy"
+OUT_EMB = f"{out_path}/embeddings-agent1.npy"
+OUT_EMB_2 = f"{out_path}/embeddings-agent2.npy"
 OUT_FEAT_EMB = f"{out_path}/feature_embeddings.npy"  # 新增：保存特征嵌入的文件
 
 df = pd.read_csv(DATA_PATH)
@@ -72,10 +74,14 @@ else:
             feature_embedding = encode_features(features)
             batch_feature_embeddings.append(feature_embedding)
             
-            prompt_protocol = build_prompt_protocol(dataset_name, features)
-            description = generate_description(model, tokenizer, prompt_protocol) 
-            batch_descriptions.append(description)
-            print(f"~[Describe]: {description}")
+            # prompt_protocol = build_prompt_protocol(dataset_name, features)
+            prompt_1 = agent_1(dataset_name, features)
+            prompt_2 = agent_2(dataset_name, features)
+            description_1 = generate_description(model, tokenizer, prompt_1) 
+            description_2 = generate_description(model, tokenizer, prompt_2)
+            combined_description = f"Agent 1 Analysis: {description_1}\n\nAgent 2 Analysis: {description_2}"
+            batch_descriptions.append(combined_description)
+            print(f"~[Describe]: {combined_description}")
         
         descriptions.extend(batch_descriptions)
         feature_embeddings.extend(batch_feature_embeddings)  # 新增：添加批次特征嵌入
@@ -84,8 +90,10 @@ else:
     
     df.to_csv(OUT_DESC, index=False)
     print("开始编码文本...")
-    embeddings = encode_descriptions(descriptions)
-    np.save(OUT_EMB, embeddings)
+    embeddings_1 = encode_descriptions(descriptions_1)
+    embeddings_2 = encode_descriptions(descriptions_2)
+    np.save(OUT_EMB, embeddings_1)
+    np.save(OUT_EMB_2, embeddings_2)
     print("编码完成，保存至:", OUT_EMB)
     
     # 保存特征嵌入

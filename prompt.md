@@ -1,17 +1,39 @@
 
-Follow these steps:\n
-1. As a deep flow parse, please describe the behavior of the current session in detail from the following perspectives:\n
-- The type of network traffic and the nature of the protocol used.\n
-- The directionality and intensity of communication.\n
-- Characteristics of the TLS handshake (e.g., version, cipher, session resumption).\n
-- Any potential signs of abnormal or malicious behavior based on the observed metrics.\n
-- How this traffic compares to similar patterns found in the dataset.\n
-2. As a parser of traffic context, please parse the current traffic according to the context information. Please analyze how the current session compares to them, and identify any subtle deviations from the examples — not just obvious differences.:\n
-- Is it fully consistent with their patterns?\n
-- Does it deviate in some meaningful way (timing, flow rate, packet structure)?\n
-- Could it indicate malicious intent despite superficial similarity?\n
-- Determine whether these deviations could indicate automation, tunneling, or malicious behavior.\n
 
+        Agent1. As a deep flow analyzer, evaluate the behavior of the current network session using the following metrics:\n
+            - Source: {features['src_ip']}:{features['src_port']}
+            - Destination: {features['dst_ip']}:{features['dst_port']}
+            - Protocol: {features['protocol']}
+            - Flow Duration: {features["flow_duration"]} μs
+            - Total Packets — Forward: {features["total_fwd_pkts"]}, Backward: {features["total_bwd_pkts"]}
+            - Avg. Packet Length — Fwd: {features["fwd_pkt_len_mean"]}, Bwd: {features["bwd_pkt_len_mean"]}
+            - Direction Ratio (Fwd/Bwd Packet Length Mean): {features["direction_ratio"]}
+            - Flow Rate — Packets/s: {features["flow_pkts_per_sec"]}, Bytes/s: {features["flow_bytes_per_sec"]}
+            - Active Period Mean: {features["active_mean"]} μs, Idle Period Mean: {features["idle_mean"]} μs
+
+            Your analysis should include:\n
+            - The type of network traffic and the nature of the protocol used.
+            - The directionality and intensity of communication.
+            - Any available TLS-related characteristics (if applicable), such as version, cipher suite, or session resumption.
+            - Any potential signs of abnormal, suspicious, or malicious behavior.
+            - How this traffic aligns with or differs from patterns commonly seen in the dataset.
+
+        Please provide a **clear, concise analysis** explaining:
+        - Your interpretation of the session's behavior.
+        - And any subtle elements regarding whether the session may be benign or malicious.
+
+        Agent2. As a contextual traffic analyst, compare the current session against the following similar sessions from the dataset:
+            {similar_flows_info}\n
+            Focus especially on subtle but meaningful deviations rather than superficial similarities. Consider:\n
+            - Is this session fully consistent with the retrieved examples?\n
+            - Does it deviate in any notable way (e.g., timing regularity, packet structure, flow rates)?\n
+            - Could its similarity be intentional to evade detection (e.g., protocol mimicry)?\n
+            - Could the deviations suggest automation, beaconing, covert tunneling, or other stealthy malicious behavior?
+
+        Please provide a **clear, concise analysis** explaining:
+        - Your comparison with the context.
+        - And any subtle elements regarding whether the session may be benign or malicious.
+        
 ## TONIoT
 ### prompt 1
     Based on this information, please evaluate:

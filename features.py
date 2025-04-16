@@ -12,17 +12,17 @@ def extract_key_features(dataset_name, row):
             "protocol": row["Protocol"],  # 注意大小写！
 
             "direction_ratio": round(
-                row["Fwd Packet Length Mean"] / (row["Bwd Packet Length Mean"] + 1e-5), 2
+                row["Fwd Packet Length Mean"] / (row["Bwd Packet Length Mean"] + 1e-5), 4
             ),
-            "flow_duration": round(row["Flow Duration"], 2),
+            "flow_duration": round(row["Flow Duration"], 4),
             "total_fwd_pkts": row["Total Fwd Packets"],
             "total_bwd_pkts": row["Total Backward Packets"],
-            "fwd_pkt_len_mean": round(row["Fwd Packet Length Mean"], 2),
-            "bwd_pkt_len_mean": round(row["Bwd Packet Length Mean"], 2),
-            "flow_pkts_per_sec": round(row["Flow Packets/s"], 2),
-            "flow_bytes_per_sec": round(row["Flow Bytes/s"], 2),
-            "active_mean": round(row["Active Mean"], 2),
-            "idle_mean": round(row["Idle Mean"], 2),
+            "fwd_pkt_len_mean": round(row["Fwd Packet Length Mean"], 4),
+            "bwd_pkt_len_mean": round(row["Bwd Packet Length Mean"], 4),
+            "flow_pkts_per_sec": round(row["Flow Packets/s"], 4),
+            "flow_bytes_per_sec": round(row["Flow Bytes/s"], 4),
+            "active_mean": round(row["Active Mean"], 4),
+            "idle_mean": round(row["Idle Mean"], 4),
         }
     elif dataset_name == "TONIoT":
         return {
@@ -33,11 +33,11 @@ def extract_key_features(dataset_name, row):
             "dst_port": row["dst_port"],
             "protocol": row["proto"], 
             "conn_state": row["conn_state"],
-            "duration": row["duration"],
-            "src_bytes": row["src_bytes"],
-            "dst_bytes": row["dst_bytes"],
-            "src_pkts": row["src_pkts"],
-            "dst_pkts": row["dst_pkts"],
+            "duration": round(row["duration"], 4),
+            "src_bytes": round(row["src_bytes"], 4),
+            "dst_bytes": round(row["dst_bytes"], 4),
+            "src_pkts": round(row["src_pkts"], 4),
+            "dst_pkts": round(row["dst_pkts"], 4),
             "ssl_version": row["ssl_version"],
             "ssl_cipher": row["ssl_cipher"],
             "ssl_established": row["ssl_established"],
@@ -52,28 +52,15 @@ def extract_key_features(dataset_name, row):
             "src_port": row["src_port"],
             "dst_ip": row["dst_ip"],
             "dst_port": row["dst_port"],
-            "Duration": row["Duration"],
-            "FlowBytesSent": row["FlowBytesSent"],
-            "FlowBytesReceived": row["FlowBytesReceived"],
-            "FlowSentRate": row["FlowSentRate"],
-            "FlowReceivedRate": row["FlowReceivedRate"],
-            "PacketLengthMean": row["PacketLengthMean"],
-            "PacketLengthStandardDeviation": row["PacketLengthStandardDeviation"],
-            "PacketTimeMean": row["PacketTimeMean"],
-            "PacketTimeStandardDeviation": row["PacketTimeStandardDeviation"],
-            "ResponseTimeTimeMean": row["ResponseTimeTimeMean"],
+            "Duration": round(row["Duration"], 4),
+            "FlowBytesSent": round(row["FlowBytesSent"], 4),
+            "FlowBytesReceived": round(row["FlowBytesReceived"], 4),
+            "FlowSentRate": round(row["FlowSentRate"], 4),
+            "FlowReceivedRate": round(row["FlowReceivedRate"], 4),
+            "PacketLengthMean": round(row["PacketLengthMean"], 4),
+            "PacketLengthStandardDeviation": round(row["PacketLengthStandardDeviation"], 4),
+            "PacketTimeMean": round(row["PacketTimeMean"], 4),
+            "PacketTimeStandardDeviation": round(row["PacketTimeStandardDeviation"], 4),
+            "ResponseTimeTimeMean": round(row["ResponseTimeTimeMean"], 4),
         }
-    else:
-        return {
-            "browser": row.get("browser", "unkonwn"),
-            "website": row.get("website", "unkonwn"),
-            "behaviour": row.get("behaviour", "unkonwn"),
-            "c_pkts_all": row["c_pkts_all:3"],
-            "c_ack_cnt": row["c_ack_cnt:5"],
-            "c_bytes_uniq": row["c_bytes_uniq:7"],
-            "http_req_cnt": row.get("http_req_cnt:111", 0),
-            "http_res_cnt": row.get("http_res_cnt:112", 0),
-            "c_TLSvers": row.get("c_TLSvers:132", "unkonwn"),
-            "c_iscrypto": row["c_iscrypto:40"],
-            "c_rtt_avg": row.get("c_rtt_avg:45", 0)
-        }
+
