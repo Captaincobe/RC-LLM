@@ -18,36 +18,32 @@ SEPARATOR = '------------------------------------'
 
 
 
-def generate_multi_view_data(dataset_name):
-    desc_embeddings = np.load(f"../datasets/{dataset_name}/outputs/embeddings_200.npy")  # shape: (10, 384)
-
-    df_raw = pd.read_csv("data/text_data.csv")
-    X_raw = df_raw.drop(columns=['Timestamp', 'src_ip', 'src_port', 'dst_ip', 'dst_port'], errors="ignore").values  # shape: (10, D)
-    # 可选标签字段，可用于监督任务
-    y = df_raw["label"].values  
-    multi_view_data = {
-        "view_1": desc_embeddings,   # 语义
-        "view_2": X_raw,           
-        "label": y                 
-    } 
-    np.savez(f"../datasets/{dataset_name}/outputs/multi_view_200.npz", **multi_view_data)
-
-
 class ECMLDataset(Dataset):
     def __init__(self, path_npz):
         data = np.load(path_npz, allow_pickle=True)
-        self.X = [data["view_1"], data["view_2"]]
+        # 动态获取所有视图
+        view_keys = sorted([k for k in data.keys() if k.startswith('view_')])
+        self.X = [data[key] for key in view_keys]
         self.Y = data["label"]
         self.num_samples = self.X[0].shape[0]
-        self.view1_features = self.X[0].shape[1]
-        self.view2_features = self.X[1].shape[1]
-        # Add label encoder
+        
+        # 记录各个视图的特征维度
+        self.view_features = {}
+        for i, key in enumerate(view_keys):
+            view_num = key.split('_')[1]  # 从"view_1"中提取"1"
+            setattr(self, f"view{view_num}_features", self.X[i].shape[1])
+            self.view_features[view_num] = self.X[i].shape[1]
+        
+        # 标签编码
         unique_labels = sorted(set(self.Y))
         self.label_encoder = LabelEncoder()
-        self.Y = self.label_encoder.fit_transform(self.Y)  # 转成整数数组
-
+        self.Y = self.label_encoder.fit_transform(self.Y)
+        
         self.label_map = {label: idx for idx, label in enumerate(unique_labels)}
         self.inv_label_map = {idx: label for label, idx in self.label_map.items()}
+        
+        # 记录视图数量
+        self.num_views = len(self.X)
 
     def __len__(self):
         return self.num_samples
@@ -92,28 +88,49 @@ def generate_random_partition_indices(num_nodes, train_ratio=0.03, val_ratio=0.4
 
 def create_multi_view_data(args):
     dataset_name = args.dataset_name
-    """ Train data"""
-    out_path = f"datasets/{dataset_name}/outputs" # datasets/CICIDS/outputs/embeddings_200_3.npy
-    # texthead = args.texthead
-    DATA_PATH = f"{out_path}/descriptions-concise.csv"
-    OUT_EMB = f"{out_path}/embeddings-concise.npy"  
-
-    desc_embeddings = np.load(OUT_EMB)
+    out_path = f"datasets/{dataset_name}/outputs"
+    DATA_PATH = f"{out_path}/text_data.csv"
+    
+    # 解析要使用的视图列表，默认使用1,2
+    views_to_use = args.views.split(',') if hasattr(args, 'views') else ['1', '2']
+    
+    # 准备多视图数据字典
+    multi_view_data = {}
+    
+    # 加载视图嵌入
+    for view_id in views_to_use:
+        view_id = view_id.strip()
+        emb_path = f"{out_path}/embeddings-agent{view_id}{args.embedding_type}.npy"
+        try:
+            embeddings = np.load(emb_path)
+            multi_view_data[f"view_{view_id}"] = embeddings
+            print(f"Loaded view_{view_id} from {emb_path}")
+        except FileNotFoundError:
+            print(f"Warning: Could not find embeddings for view_{view_id} at {emb_path}")
+    
+    # 加载原始数据和标签
     df_raw = pd.read_csv(DATA_PATH)
-    X_raw = df_raw.drop(columns=['Timestamp', 'src_ip', 'src_port', 'dst_ip', 'dst_port', 'label','description'], errors="ignore").values  # shape: (10, D)
-
-    # 可选标签字段
-    y = df_raw["label"].values  
-    multi_view_data = {
-        "view_1": desc_embeddings,   # 语义
-        "view_2": X_raw,           
-        "label": y                 
-    }
-    np.savez(f"{out_path}/multi_view.npz", **multi_view_data)
+    
+    # 如果需要使用原始特征作为视图
+    if '0' in views_to_use:
+        X_raw = df_raw.drop(columns=['Timestamp', 'src_ip', 'src_port', 'dst_ip', 'dst_port', 'label', 'description'], errors="ignore").values
+        multi_view_data["view_0"] = X_raw
+        print(f"Added original features as view_0")
+    
+    # 添加标签
+    y = df_raw["label"].values
+    multi_view_data["label"] = y
+    
+    # 保存多视图数据
+    np.savez(f"{out_path}/multi_view-{args.embedding_type}-{args.views}.npz", **multi_view_data)
+    
+    views_str = ", ".join([f"view_{v}" for v in views_to_use])
+    print(f"Created multi-view data file with views: {views_str}")
 
 
 def load_data(args, DATA_PATH, logger=None):
-    data = ECMLDataset(f"{DATA_PATH}/multi_view.npz")
+    data = ECMLDataset(f"{DATA_PATH}/multi_view-{args.embedding_type}-{args.views}.npz")
+    print(f"Loading data from {DATA_PATH}/multi_view-{args.embedding_type}-{args.views}.npz")
     # data = np.load(f"{DATA_PATH}/test_data.npy", allow_pickle=True)
 
     # dataset = args.dataset_name

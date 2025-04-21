@@ -13,37 +13,32 @@ class LLM_RC(nn.Module):
         super(LLM_RC, self).__init__()
         torch.manual_seed(9999)
         torch.cuda.manual_seed(9999)
-        self.feat_1 = data.view1_features
-        self.feat_2 = data.view2_features
+        
+        # 动态获取每个视图的特征维度
+        self.view_dims = {}
+        for view_id, dim in data.view_features.items():
+            self.view_dims[view_id] = dim
+        
         self.hid = hid
         self.num_classes = num_classes
-        self.v = 0
-        self.encoder = MLP_encoder(nfeat=self.feat_1,
-                                 nhid=self.hid,
-                                 ncla=self.num_classes,
-                                 dropout=dropout,
-                                 use_bn=use_bn)
-        self.encoder_2 = MLP_encoder(nfeat=self.feat_2,
-                                 nhid=self.hid,
-                                 ncla=self.num_classes,
-                                 dropout=dropout,
-                                 use_bn=use_bn)
-
-        # self.encoder = MLP_encoder(nfeat=self.feat,
-        #                     nhid=self.hid,
-        #                     dropout=dropout)
-        # self.encoder_pse = MLP_encoder(nfeat=self.feat*2,
-        #             nhid=self.hid*2,
-        #             dropout=dropout)
-
-        # self.classifier_pse = MLP_classifier(nfeat=self.hid*2,
-        #             nclass=self.num_classes,
-        #             dropout=dropout)
-
-        self.classifier = MLP_classifier(nfeat=self.hid,
-                                    nclass=self.num_classes,
-                                    dropout=dropout)
-
+        
+        # 为每个视图动态创建编码器
+        self.encoders = nn.ModuleDict()
+        for view_id, dim in self.view_dims.items():
+            self.encoders[f"encoder_{view_id}"] = MLP_encoder(
+                nfeat=dim,
+                nhid=self.hid,
+                ncla=self.num_classes,
+                dropout=dropout,
+                use_bn=use_bn
+            )
+        
+        self.classifier = MLP_classifier(
+            nfeat=self.hid,
+            nclass=self.num_classes,
+            dropout=dropout
+        )
+        
         self.use_bn = use_bn
         self.attention = Attention(input_dim=self.num_classes)
 
@@ -93,28 +88,65 @@ class LLM_RC(nn.Module):
     def Simple(self, e1, e2):
         return (e1+e2)/2
 
-    def forward(self, x, x_glo):
-        evidence = F.softplus(self.encoder(x))
-        evidence_glo = F.softplus(self.encoder_2(x_glo))
-
-
-        # if self.v == '0':
-        #     alpha_1,alpha_2 = evidence+1, evidence_glo+1
-        #     alpha_all = self.DS_Combin_two(alpha_1,alpha_2)
-        #     return alpha_1,alpha_2,alpha_all
+    def forward(self, x_list):
+        # x_list是一个视图特征的列表
+        evidences = []
+        alphas = []
         
-
-        # if self.att:
-        #     att_fuse = self.attention(evidence, evidence_glo)
-        #     return att_fuse
-        # elif self.sim:
-        #     sim_fuse = self.Simple(evidence, evidence_glo)
-        #     return sim_fuse
+        # 为每个视图生成证据
+        for i, view_id in enumerate(sorted(self.view_dims.keys())):
+            evidence = F.softplus(self.encoders[f"encoder_{view_id}"](x_list[i]))
+            evidences.append(evidence)
+            alphas.append(evidence + 1)
         
-        alpha_1,alpha_2= evidence+1, evidence_glo+1
-        alpha_all = self.DS_Combin_two(alpha_1,alpha_2)
+        # 如果只有一个视图
+        if len(alphas) == 1:
+            return tuple(alphas+alphas)
+        
+        # 逐步组合多个视图
+        combined_alpha = self.DS_Combin_two(alphas[0], alphas[1])
+        for i in range(2, len(alphas)):
+            combined_alpha = self.DS_Combin_two(combined_alpha, alphas[i])
+        
+        # 返回所有单视图结果和组合结果
+        return tuple(alphas + [combined_alpha])
 
-        return alpha_1,alpha_2,alpha_all
 
+class RCML(nn.Module):
+    def __init__(self, num_views, dims, num_classes): # self, data, num_classes, hid: int = 128, dropout=0.5, use_bn = True
+        super(RCML, self).__init__()
+        self.num_views = num_views
+        self.num_classes = num_classes
+        self.EvidenceCollectors = nn.ModuleList([EvidenceCollector(dims[i], self.num_classes) for i in range(self.num_views)])
+
+    def forward(self, X):
+        # get evidence
+        evidences = dict()
+        for v in range(self.num_views):
+            evidences[v] = self.EvidenceCollectors[v](X[v])
+        # average belief fusion
+        evidence_a = evidences[0]
+        for i in range(1, self.num_views):
+            evidence_a = (evidences[i] + evidence_a) / 2
+        return evidences, evidence_a
+
+
+class EvidenceCollector(nn.Module):
+    def __init__(self, dims, num_classes):
+        super(EvidenceCollector, self).__init__()
+        self.num_layers = len(dims)
+        self.net = nn.ModuleList()
+        for i in range(self.num_layers - 1):
+            self.net.append(nn.Linear(dims[i], dims[i + 1]))
+            self.net.append(nn.ReLU())
+            self.net.append(nn.Dropout(0.1))
+        self.net.append(nn.Linear(dims[self.num_layers - 1], num_classes))
+        self.net.append(nn.Softplus())
+
+    def forward(self, x):
+        h = self.net[0](x)
+        for i in range(1, len(self.net)):
+            h = self.net[i](h)
+        return h
 
 

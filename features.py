@@ -1,10 +1,24 @@
 import pandas as pd
 
 
+def parse_timestamp(ts):
+    # 如果是纯数字的（unix秒）
+    try:
+        return pd.to_datetime(float(ts), unit='s')
+    except:
+        pass
+    # 如果是标准日期字符串
+    try:
+        return pd.to_datetime(ts)
+    except:
+        # 可以根据实际格式调整
+        return pd.NaT
+
 
 def extract_key_features(dataset_name, row):
     if dataset_name == "CICIDS":
         return {
+            "Timestamp": parse_timestamp(row["Timestamp"]),
             "src_ip": row["src_ip"],
             "src_port": row["src_port"],
             "dst_ip": row["dst_ip"],
@@ -14,9 +28,11 @@ def extract_key_features(dataset_name, row):
             "direction_ratio": round(
                 row["Fwd Packet Length Mean"] / (row["Bwd Packet Length Mean"] + 1e-5), 4
             ),
-            "flow_duration": round(row["Flow Duration"], 4),
+            "duration": round(row["Flow Duration"], 4),
             "total_fwd_pkts": row["Total Fwd Packets"],
             "total_bwd_pkts": row["Total Backward Packets"],
+            "src_bytes": row["Total Length of Fwd Packets"],
+            "dst_bytes": row["Total Length of Bwd Packets"],
             "fwd_pkt_len_mean": round(row["Fwd Packet Length Mean"], 4),
             "bwd_pkt_len_mean": round(row["Bwd Packet Length Mean"], 4),
             "flow_pkts_per_sec": round(row["Flow Packets/s"], 4),
@@ -26,7 +42,7 @@ def extract_key_features(dataset_name, row):
         }
     elif dataset_name == "TONIoT":
         return {
-            "Timestamp": row["Timestamp"],
+            "Timestamp": parse_timestamp(row["Timestamp"]),
             "src_ip": row["src_ip"],
             "src_port": row["src_port"],
             "dst_ip": row["dst_ip"],
@@ -45,16 +61,21 @@ def extract_key_features(dataset_name, row):
             "ssl_subject": row["ssl_subject"],
             "ssl_issuer": row["ssl_issuer"],
             "weird_name": row["weird_name"],
+            "dns_query": row["dns_query"],
+            "http_uri": row["http_uri"],
+            "http_user_agent": row["http_user_agent"],
+            "http_referer": row["http_referrer"],
         }
     elif dataset_name == "DoHBrw":
         return {
+            "Timestamp": parse_timestamp(row["Timestamp"]),
             "src_ip": row["src_ip"],
             "src_port": row["src_port"],
             "dst_ip": row["dst_ip"],
             "dst_port": row["dst_port"],
-            "Duration": round(row["Duration"], 4),
-            "FlowBytesSent": round(row["FlowBytesSent"], 4),
-            "FlowBytesReceived": round(row["FlowBytesReceived"], 4),
+            "duration": round(row["Duration"], 4),
+            "src_bytes": round(row["FlowBytesSent"], 4),
+            "dst_bytes": round(row["FlowBytesReceived"], 4),
             "FlowSentRate": round(row["FlowSentRate"], 4),
             "FlowReceivedRate": round(row["FlowReceivedRate"], 4),
             "PacketLengthMean": round(row["PacketLengthMean"], 4),

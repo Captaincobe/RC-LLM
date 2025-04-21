@@ -1,10 +1,19 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-
+from args import parameter_parser
 # 初始化编码器模型
-encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
-# 
+# encoder_model = SentenceTransformer("BAAI/bge-base-en-v1.5") # all-MiniLM-L6-v2 BAAI/bge-base-en-v1.5
+# # 替换为其他已知可用的模型
+args = parameter_parser()
+if args.embedding_type == "paraphrase":
+    encoder_model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+elif args.embedding_type == "all":
+    encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
+elif args.embedding_type == "mpnet":
+    encoder_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2") # 性能更好，但更大
+
+
 def encode_features(features_dict):
     """为流量特征生成嵌入向量"""
     # 将特征字典转换为文本描述
