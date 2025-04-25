@@ -129,7 +129,7 @@ def agent_2(dataset, features):
 def chat(messages, model, tokenizer, max_tokens=256):
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-
+    
     stop_token_ids = [tokenizer.eos_token_id] if tokenizer.eos_token_id else []
 
     output = model.generate(
@@ -150,12 +150,19 @@ def chat(messages, model, tokenizer, max_tokens=256):
 def generate_description(model, tokenizer, prompt):
     # torch.cuda.empty_cache()
     try:
+        start = time.time()
+        
         if hasattr(tokenizer, "chat_template") and tokenizer.chat_template:
-            start = time.time() 
             response = chat([
                 {"role": "system", "content": "You are an expert in encrypted traffic analysis. You detect anomalies and identify potentially malicious behavior in network sessions, even when the data appears superficially benign."},
                 {"role": "user", "content": f"{prompt}"}
             ], model, tokenizer)
+        else:
+            # 为不支持聊天模板的模型添加一个替代方案
+            # 比如直接使用 model.generate
+            inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+            output = model.generate(**inputs, max_new_tokens=256)
+            response = tokenizer.decode(output[0], skip_special_tokens=True)
 
         end = time.time()
         print(f"Generation time: {end - start:.2f} seconds")

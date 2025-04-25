@@ -88,7 +88,7 @@ def generate_random_partition_indices(num_nodes, train_ratio=0.03, val_ratio=0.4
 
 def create_multi_view_data(args):
     dataset_name = args.dataset_name
-    out_path = f"datasets/{dataset_name}/outputs"
+    out_path = f"datasets/{dataset_name}"
     DATA_PATH = f"{out_path}/text_data.csv"
     
     # 解析要使用的视图列表，默认使用1,2
@@ -100,7 +100,7 @@ def create_multi_view_data(args):
     # 加载视图嵌入
     for view_id in views_to_use:
         view_id = view_id.strip()
-        emb_path = f"{out_path}/embeddings-agent{view_id}{args.embedding_type}.npy"
+        emb_path = f"{out_path}/{args.pretrain_model}/embeddings-agent{view_id}{args.embedding_type}.npy"
         try:
             embeddings = np.load(emb_path)
             multi_view_data[f"view_{view_id}"] = embeddings
@@ -122,15 +122,15 @@ def create_multi_view_data(args):
     multi_view_data["label"] = y
     
     # 保存多视图数据
-    np.savez(f"{out_path}/multi_view-{args.embedding_type}-{args.views}.npz", **multi_view_data)
+    np.savez(f"{out_path}/{args.pretrain_model}/multi_view-{args.embedding_type}-{args.views}.npz", **multi_view_data)
     
     views_str = ", ".join([f"view_{v}" for v in views_to_use])
     print(f"Created multi-view data file with views: {views_str}")
 
 
 def load_data(args, DATA_PATH, logger=None):
-    data = ECMLDataset(f"{DATA_PATH}/multi_view-{args.embedding_type}-{args.views}.npz")
-    print(f"Loading data from {DATA_PATH}/multi_view-{args.embedding_type}-{args.views}.npz")
+    data = ECMLDataset(f"{DATA_PATH}/{args.pretrain_model}/multi_view-{args.embedding_type}-{args.views}.npz")
+    print(f"Loading data from {DATA_PATH}/{args.pretrain_model}/multi_view-{args.embedding_type}-{args.views}.npz")
     # data = np.load(f"{DATA_PATH}/test_data.npy", allow_pickle=True)
 
     # dataset = args.dataset_name

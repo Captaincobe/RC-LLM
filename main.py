@@ -10,27 +10,28 @@ from args import parameter_parser
 from utils.Dataloader import create_multi_view_data, load_data
 from utils.loss import ce_loss, get_dc_loss, get_soft_dc_loss
 
-# 解析额外参数
 args = parameter_parser()
 EPOCHS = args.epochs
 # BATCH_SIZE = args.batch_size
 # texthead = args.texthead
 annealing_epoch = args.annealing_epoch
 dataset_name = args.dataset_name
-out_path = f"{dataset_name}/outputs"
+# out_path = f"{dataset_name}"
 # 
 args = parameter_parser()
 device = torch.device(f'cuda:{args.cuda}' if torch.cuda.is_available() else 'cpu')
 
-# 使用run_id创建唯一的保存路径
 model_dir = f"save_model/{dataset_name}"
-if args.run_id:
-    model_dir = f"{model_dir}/{args.run_id}"
     
 os.makedirs(model_dir, exist_ok=True)
-SAVE_PATH = f"{model_dir}/{args.dc_loss}_{args.hid}_best_model.pth"
 
-DATA_PATH = f"datasets/{out_path}/multi_view-{args.embedding_type}-{args.views}.npz"
+# 使用run_id创建唯一的保存路径
+if args.run_id:
+    SAVE_PATH = f"{model_dir}/{args.dc_loss}_{args.hid}_best_model_{args.run_id}.pth"
+else:
+    SAVE_PATH = f"{model_dir}/{args.dc_loss}_{args.hid}_best_model.pth"
+
+DATA_PATH = f"datasets/{dataset_name}/multi_view-{args.embedding_type}-{args.views}.npz"
 
 
 os.makedirs(os.path.dirname(SAVE_PATH), exist_ok=True)
@@ -39,7 +40,7 @@ if not os.path.exists(DATA_PATH):
 
 
 # print(f"🚀 Using device: {device}")
-data, n_class, idx_train, idx_val, idx_test, logger = load_data(args, f"datasets/{out_path}/")
+data, n_class, idx_train, idx_val, idx_test, logger = load_data(args, f"datasets/{dataset_name}/")
 print(f'train: {len(idx_train)}, val: {len(idx_val)}, test: {len(idx_test)}')
 # input_dims = [data.X[0].shape[1], data.X[1].shape[1]]  # (200, 384), (200, 130)
 num_classes = len(np.unique(data.Y))
@@ -49,15 +50,12 @@ labels = data.Y
 model = LLM_RC(data=data, num_classes=num_classes, dropout=args.dropout, hid=args.hid).to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
-# 准备训练数据
 x_train = [x[idx_train].to(device) for x in data.X]
 target = labels[idx_train].to(device)
 
-# 准备验证数据
 x_val = [x[idx_val].to(device) for x in data.X]
 y_val = labels[idx_val].to(device)
 
-# 如果需要使用测试数据
 if not args.no_test:
     x_test = [x[idx_test].to(device) for x in data.X]
     y_test = labels[idx_test].to(device)

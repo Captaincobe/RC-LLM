@@ -6,7 +6,7 @@ from args import parameter_parser
 # encoder_model = SentenceTransformer("BAAI/bge-base-en-v1.5") # all-MiniLM-L6-v2 BAAI/bge-base-en-v1.5
 # # 替换为其他已知可用的模型
 args = parameter_parser()
-if args.embedding_type == "paraphrase":
+if args.embedding_type == "par":
     encoder_model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
 elif args.embedding_type == "all":
     encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
