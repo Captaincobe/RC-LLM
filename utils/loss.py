@@ -70,7 +70,7 @@ def get_soft_dc_loss(alphas, device, beta=1.0):
             # KL散度 (更平滑)
             kl_ij = F.kl_div(p[i].log(), p[j], reduction='none').sum(dim=1)
             kl_ji = F.kl_div(p[j].log(), p[i], reduction='none').sum(dim=1)
-            kl = (kl_ij + kl_ji) / 2
+            kl = (kl_ij + kl_ji) / 2  # D_KL
 
             # Soft Confidence
             # 方式A：乘积开根号
@@ -83,6 +83,57 @@ def get_soft_dc_loss(alphas, device, beta=1.0):
             count += batch_size
 
     return dc_sum / count
+
+
+# def get_soft_dc_loss(alphas, device, beta=1.0):
+#     """
+#     软置信度版本的视角冲突损失。
+#     """
+#     num_views = len(alphas)
+#     batch_size, num_classes = alphas[0].shape
+
+#     p = torch.zeros((num_views, batch_size, num_classes), device=device)
+#     u = torch.zeros((num_views, batch_size), device=device)
+
+#     # 1. 计算每个 view (agent) 的期望概率 p 和不确定性 u
+#     for v in range(num_views):
+#         alpha = alphas[v]
+#         S = torch.sum(alpha, dim=1, keepdim=True)
+#         p[v] = alpha / S  # 这就是论文中的 \hat{p}^s
+#         u[v] = num_classes / S.view(-1) # 这就是论文中的 u^s
+
+#     dc_sum = 0
+#     count = 0 # count 变量似乎没有在最终返回的 loss 中使用，而是直接返回 dc_sum
+#               # 如果要计算平均损失，应该用 dc_sum / count
+#               # 但通常这种 loss component 是 sum over batch，然后在总 loss 中由 batch_size 平均
+
+#     for i in range(num_views):
+#         for j in range(i + 1, num_views): # 两两 view 之间计算
+#             # 2. 计算对称 KL 散度
+#             # KL散度 (更平滑)
+#             # F.kl_div(input, target, ...) expects input to be log-probabilities and target to be probabilities
+#             kl_ij = F.kl_div(p[i].log(), p[j], reduction='none').sum(dim=1) # D_KL(p[j] || p[i]) if p[i] is log
+#                                                                         # Actually, F.kl_div(x, y) = sum(y * (log(y) - x)) if x is log_prob
+#                                                                         # So, F.kl_div(p[i].log(), p[j]) = sum(p[j] * (log(p[j]) - p[i].log()))
+#                                                                         # This is D_KL(p[j] || p[i])
+#             kl_ji = F.kl_div(p[j].log(), p[i], reduction='none').sum(dim=1) # D_KL(p[i] || p[j])
+#             kl = (kl_ij + kl_ji) / 2 # 对称 KL 散度
+
+#             # 3. Soft Confidence (置信度对齐)
+#             # 方式A：乘积开根号
+#             conf = torch.sqrt((1 - u[i]) * (1 - u[j]))  # shape = (B,)
+#             # 或 方式B：sigmoid权重 (未使用)
+#             # conf = torch.sigmoid(beta * ((1 - u[i]) + (1 - u[j])) / 2)
+
+#             # 4. 融合 (计算带权重的冲突)
+#             dc_sum += torch.sum(kl * conf) # 对 batch 内所有样本的 (kl * conf)求和，并累加到 dc_sum
+#             # count += batch_size # 如果要算平均值，分母应该是样本对的数量乘以 batch_size，或者直接返回 sum
+
+#     # 函数的最后没有显式 return 语句，但从下面的 loss 计算来看，
+#     # get_soft_dc_loss(...) 应该返回 dc_sum (或 dc_sum / count 如果要做平均)
+#     # 假设它返回的是 dc_sum
+#     return dc_sum # 假设是这样，或者是一个平均值
+
 
 # def get_dc_loss(alphas, device, visualize=True):
 #     num_views = len(alphas)

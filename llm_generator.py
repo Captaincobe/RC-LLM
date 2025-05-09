@@ -1,7 +1,6 @@
 import os
 import random
 import torch
-os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 from features import extract_key_features
 # from prompt_builder import build_prompt, build_prompt_protocol, generate_description, agent_1, agent_2
 from prompt_builder import generate_description, agent_1, agent_2
@@ -21,8 +20,9 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 # mistralai/Mistral-7B-Instruct-v0.2
 # tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct", trust_remote_code=True) # {"": device}
-if args.pretrain_model == "qwen":
-    pretrain_model = "Qwen/Qwen2.5-7B-Instruct"
+if args.pretrain_model == "qwen3":
+    # pretrain_model = "Qwen/Qwen2.5-7B-Instruct"
+    pretrain_model = "Qwen/Qwen3-8B"
 elif args.pretrain_model == "mistral":
     pretrain_model = "mistralai/Mistral-7B-Instruct-v0.2"
 elif args.pretrain_model == "zephyr":
@@ -31,6 +31,7 @@ elif args.pretrain_model == "gemma":
     pretrain_model = "google/gemma-3-27b-it"
 elif args.pretrain_model == "gpt3":
     pretrain_model = "TurkuNLP/gpt3-finnish-small"  
+
 
 tokenizer = AutoTokenizer.from_pretrained(pretrain_model, trust_remote_code=True)  # QwQ-7B  Mistral-7B-Instruct-v0.3 google/gemma-3-27b-it  HuggingFaceH4/zephyr-7b-alpha TurkuNLP/gpt3-finnish-small
 model = AutoModelForCausalLM.from_pretrained(pretrain_model, device_map="auto", low_cpu_mem_usage=True, trust_remote_code=True, offload_buffers=True)
@@ -47,11 +48,16 @@ DATA_PATH = f"{out_path}/text_data.csv"
 # 只定义agent1和agent2的描述和嵌入文件路径
 OUT_DESC_AGENT1 = f"{out_path}{args.pretrain_model}/descriptions-agent1.csv"
 OUT_DESC_AGENT2 = f"{out_path}{args.pretrain_model}/descriptions-agent2.csv"
-OUT_EMB_1 = f"{out_path}{args.pretrain_model}/embeddings-agent1{args.embedding_type}.npy"
-OUT_EMB_2 = f"{out_path}{args.pretrain_model}/embeddings-agent2{args.embedding_type}.npy"
+OUT_EMB = f"{out_path}{args.pretrain_model}/"
+OUT_EMB_1 = f"{OUT_EMB}embeddings-agent1{args.embedding_type}.npy"
+OUT_EMB_2 = f"{OUT_EMB}embeddings-agent2{args.embedding_type}.npy"
 
 df = pd.read_csv(DATA_PATH)
 
+
+os.makedirs(os.path.dirname(OUT_EMB), exist_ok=True)
+
+    
 # 检查是否已有描述文件
 if os.path.exists(OUT_DESC_AGENT1) and os.path.exists(OUT_DESC_AGENT2):
     # 如果描述文件已存在，直接加载并生成嵌入

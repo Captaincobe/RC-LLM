@@ -5,7 +5,10 @@ import pandas as pd
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import StoppingCriteria, StoppingCriteriaList
 from utils.utils import encode_features, retrieve_similar_flows
+print("C")
 from datetime import datetime
+
+
 
 class StopOnTokens(StoppingCriteria):
     def __init__(self, stop_ids):
@@ -187,7 +190,7 @@ def summarize_context(feature, dataset_name, max_samples=10):
     global _dataset_cache
     
     # 数据集路径
-    out_path = f"datasets/{dataset_name}/outputs"
+    out_path = f"datasets/{dataset_name}"
     data_path = f"{out_path}/text_data.csv"
     
     try:

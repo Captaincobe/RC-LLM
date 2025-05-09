@@ -5,9 +5,9 @@ def parameter_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_name', type=str, default='CICIDS', choices=["TONIoT","DoHBrw", "CICIDS", "CICMalMen"],
                 help='which dataset to use')
-    parser.add_argument("--cuda", type=str, default='1', help="Device: cuda:num or cpu.")
+    parser.add_argument("--cuda", type=str, default='0', help="Device: cuda:num or cpu.")
     parser.add_argument('--emb', dest= 'embedding_type',type=str, default='all', help='embedding type', choices=["mpnet", "par", "all"])
-    parser.add_argument('--pretrain', dest= 'pretrain_model', type=str, default='qwen', help='pretrain type', choices=["gpt3", "qwen", "mistral","zephyr","gemma"])
+    parser.add_argument('--pretrain', dest= 'pretrain_model', type=str, default='qwen', help='pretrain type', choices=["qwen3","gpt3", "qwen", "mistral","zephyr","gemma"])
     parser.add_argument('--run_id', type=str, default='', help='Unique run identifier for parallel grid search')
     parser.add_argument('--no_test', action='store_true', default=False, help='Skip test phase')
     parser.add_argument('--views', type=str, default='0,1,2', help='Comma-separated list of views to use (e.g., "1,2" or "1,2,3")')

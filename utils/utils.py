@@ -2,16 +2,23 @@ from sentence_transformers import SentenceTransformer
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from args import parameter_parser
+import os
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 # 初始化编码器模型
 # encoder_model = SentenceTransformer("BAAI/bge-base-en-v1.5") # all-MiniLM-L6-v2 BAAI/bge-base-en-v1.5
 # # 替换为其他已知可用的模型
 args = parameter_parser()
 if args.embedding_type == "par":
     encoder_model = SentenceTransformer("paraphrase-MiniLM-L6-v2")
+    # encoder_model = SentenceTransformer('sentence-transformers/paraphrase-MiniLM-L6-v2')
+    print("load embedding model")
 elif args.embedding_type == "all":
     encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
+    print("load embedding model")
 elif args.embedding_type == "mpnet":
     encoder_model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2") # 性能更好，但更大
+    print("load embedding model")
 
 
 def encode_features(features_dict):
