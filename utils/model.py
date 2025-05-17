@@ -9,7 +9,8 @@ import math
 
 
 class LLM_RC(nn.Module):
-    def __init__(self, data, num_classes, hid: int = 128, dropout=0.5, use_bn = True):
+    # def __init__(self, data, num_classes, hid: int = 128, dropout=0.5, use_bn = True):
+    def __init__(self, data, num_classes, hid: int = 128, dropout=0.5, use_bn=True, use_evl=True):
         super(LLM_RC, self).__init__()
         torch.manual_seed(9999)
         torch.cuda.manual_seed(9999)
@@ -38,7 +39,7 @@ class LLM_RC(nn.Module):
             nclass=self.num_classes,
             dropout=dropout
         )
-        
+        self.use_evl = use_evl
         self.use_bn = use_bn
         self.attention = Attention(input_dim=self.num_classes)
 
@@ -85,32 +86,58 @@ class LLM_RC(nn.Module):
         alpha_a = e_a + 1
         return alpha_a
 
-    def Simple(self, e1, e2):
-        return (e1+e2)/2
+    def Simple(self, e1, e2,e3):
+        return (e1+e2+e3)/3
 
     def forward(self, x_list):
         # x_list是一个视图特征的列表
         evidences = []
+        outputs = []
         alphas = []
-        
-        # 为每个视图生成证据
         for i, view_id in enumerate(sorted(self.view_dims.keys())):
-            evidence = F.softplus(self.encoders[f"encoder_{view_id}"](x_list[i]))
-            evidences.append(evidence)
-            alphas.append(evidence + 1)
-        
-        # 如果只有一个视图
+            # evidence = F.softplus(self.encoders[f"encoder_{view_id}"](x_list[i]))
+            # evidences.append(evidence)
+            # alphas.append(evidence + 1)
+
+            out = self.encoders[f"encoder_{view_id}"](x_list[i])
+            if self.use_evl:
+                out = F.softplus(out) + 1  # Dirichlet alpha
+            else:
+                out = F.softplus(out)
+            outputs.append(out)
+        alphas = outputs
         if len(alphas) == 1:
             return tuple(alphas+alphas)
         
-        # 逐步组合多个视图
-        combined_alpha = self.DS_Combin_two(alphas[0], alphas[1])
-        for i in range(2, len(alphas)):
-            combined_alpha = self.DS_Combin_two(combined_alpha, alphas[i])
-        
-        # 返回所有单视图结果和组合结果
-        return tuple(alphas + [combined_alpha])
+        if self.use_evl:
+            combined_alpha = self.DS_Combin_two(alphas[0], alphas[1])
+            for i in range(2, len(alphas)):
+                combined_alpha = self.DS_Combin_two(combined_alpha, alphas[i])
+        else:
+            combined_alpha = self.Simple(outputs[0], outputs[1], outputs[2])
 
+        return tuple(outputs + [combined_alpha])
+
+        # return tuple(alphas + [combined_alpha])
+
+    # def forward(self, x_list):
+    #     # x_list 是一个视图特征的列表
+    #     outputs = []
+
+    #     # 每个视图直接输出 logits（不使用 softplus 和 evidence）
+    #     for i, view_id in enumerate(sorted(self.view_dims.keys())):
+    #         logits = F.softplus(self.encoders[f"encoder_{view_id}"](x_list[i]))  # shape: [batch_size, num_classes]
+    #         outputs.append(logits)
+
+    #     # 如果只有一个视图，直接返回重复的输出
+    #     if len(outputs) == 1:
+    #         return tuple(outputs + outputs)
+
+    #     # 否则执行简单平均融合
+    #     combined_output = self.Simple(outputs[0], outputs[1], outputs[2])
+
+    #     # 返回所有单视图输出 + 融合结果
+    #     return tuple(outputs + [combined_output])
 
 class RCML(nn.Module):
     def __init__(self, num_views, dims, num_classes): # self, data, num_classes, hid: int = 128, dropout=0.5, use_bn = True

@@ -2,6 +2,7 @@
 run.py
 test.ipynb
 prompt_builder_Chinese.py
+grid_search_runner.py
 matrix.py
 prompt.md
 *.sh
@@ -23,6 +24,22 @@ datasets/
 *.pt
 *.h5
 *.npz
+
+grid_logs/
+*.csv
+*.pth
+*.pt
+*.h5
+*.npz
+
+
+results/
+*.csv
+*.pth
+*.pt
+*.h5
+*.npz
+
 
 save_model/
 *.csv

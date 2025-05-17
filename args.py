@@ -10,12 +10,12 @@ def parameter_parser():
     parser.add_argument('--pretrain', dest= 'pretrain_model', type=str, default='qwen', help='pretrain type', choices=["qwen3","gpt3", "qwen", "mistral","zephyr","gemma"])
     parser.add_argument('--run_id', type=str, default='', help='Unique run identifier for parallel grid search')
     parser.add_argument('--no_test', action='store_true', default=False, help='Skip test phase')
+    parser.add_argument('--evl', default=True)
     parser.add_argument('--views', type=str, default='0,1,2', help='Comma-separated list of views to use (e.g., "1,2" or "1,2,3")')
+    parser.add_argument("--seed", default='0', type=int)
     parser.add_argument('--n_class', dest='n_class', type=int)
-    parser.add_argument('--b', dest='binary', action='store_true',
-                         default=False, help='True if you want binary classification.')
-    
-    
+
+
     parser.add_argument('--lr', dest='lr', type=float, default=1e-4)
     parser.add_argument('--dropout', type=float, default=0.5,
                         help='Dropout rate (1 - keep probability).')
@@ -24,9 +24,9 @@ def parameter_parser():
     parser.add_argument('--dc_loss', type=float, default=1.0,
                         help='Weight for the DC loss component.')
     
-    parser.add_argument('--train_ratio', type=float, default=0.3)
+    parser.add_argument('--train_ratio', type=float, default=0.1)
     parser.add_argument('--epo', dest='epochs', type=int, default=3000)
-    parser.add_argument("--annealing_epoch", type=int, default=5)
+    parser.add_argument("--annealing_epoch", type=int, default=15)
     # parser.add_argument('--batch', dest='batch_size', type=int, default=16)
     # parser.add_argument('--texthead', dest='texthead', type=int, default=1000)
     parser.add_argument('--run', dest='run', type=int, default=1)

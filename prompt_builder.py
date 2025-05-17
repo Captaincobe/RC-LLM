@@ -7,7 +7,7 @@ from transformers import StoppingCriteria, StoppingCriteriaList
 from utils.utils import encode_features, retrieve_similar_flows
 print("C")
 from datetime import datetime
-
+from sklearn.metrics.pairwise import cosine_similarity
 
 
 class StopOnTokens(StoppingCriteria):
@@ -46,7 +46,15 @@ def agent_1(dataset, features):
         """
     elif dataset == 'TONIoT':
         prompt = f"""
-            As a deep flow analyzer, evaluate the behavior of the current network session using the following metrics:\n
+            As a deep flow analyzer, please be aware of the following prior knowledge:
+                    - The dataset includes nine major categories (Scanning, Reconnaissance, DoS, DDoS, Ransomware, Backdoor, Injection, XSS, Password Cracking, MITM) of attacks targeting IoT/IIoT devices and sensors.
+                    - Scanning attacks originate from IPs like 192.168.1.30–33 and 192.168.1.38 using tools such as Nmap and Nessus.
+                    - DoS/DDoS attacks are launched from 192.168.1.30–31 and 192.168.1.34–39 using Scapy scripts and UFONet.
+                    - Ransomware and Backdoor attacks use Metasploitable3, launched from 192.168.1.33 and 192.168.1.37.
+                    - Injection and XSS attacks involve Bash scripts and tools like XSSer, targeting DVWA and IoT web interfaces.
+                    - Password cracking uses CeWL and Hydra from various IPs such as 192.168.1.30–36, 38.
+                    - MITM attacks use Ettercap and originate from 192.168.1.31–34, involving ARP poisoning and port sniffing.\n
+            Now, evaluate the behavior of the current network session using the following metrics:\n
                 - Source IP and Port: {features['src_ip']}:{features['src_port']}
                 - Destination IP and Port: {features['dst_ip']}:{features['dst_port']}
                 - Duration: {features['duration']} seconds
@@ -75,7 +83,11 @@ def agent_1(dataset, features):
         """ 
     elif dataset == 'DoHBrw':
         prompt = f"""
-            As a deep flow analyzer, evaluate the behavior of the current network session using the following metrics:\n
+            As a a deep flow analyzer, please be aware of the following prior knowledge:
+                - Benign DoH traffic was generated using browsers such as Firefox and Chrome, accessing top Alexa sites via public DoH servers (e.g., Cloudflare, Google DNS, AdGuard).
+                - Malicious DoH traffic was crafted using tunneling tools such as dns2tcp, DNSCat2, and Iodine, which encapsulate other protocols within DNS-over-HTTPS queries.
+                - Only tunneled malicious DoH behavior is present in this dataset; C2-only behaviors are excluded.\n
+            Now, please evaluate the behavior of the current network session using the following metrics:\n
                 - Source IP and Port: {features['src_ip']}:{features['src_port']}
                 - Destination IP and Port: {features['dst_ip']}:{features['dst_port']}
                 - Duration: {features['duration']} seconds
@@ -86,11 +98,11 @@ def agent_1(dataset, features):
                 - Response Time Mean: {features['ResponseTimeTimeMean']} s
 
                 Your analysis should include:\n
-                - The type of network traffic and the nature of the protocol used.
-                - The directionality and intensity of communication.
-                - Any available TLS-related characteristics (if applicable), such as version, cipher suite, or session resumption.
-                - Any potential signs of abnormal, suspicious, or malicious behavior.
-                - How this traffic aligns with or differs from patterns commonly seen in the dataset.
+                    - The type of network traffic and the nature of the protocol used.
+                    - The directionality and intensity of communication.
+                    - Any available TLS-related characteristics (if applicable), such as version, cipher suite, or session resumption.
+                    - Any potential signs of abnormal, suspicious, or malicious behavior.
+                    - How this traffic aligns with or differs from patterns commonly seen in the dataset.
 
             Please provide a **clear, one-sentence, and concise analysis** explaining:
             - Your interpretation of the session's behavior.
@@ -103,33 +115,74 @@ def agent_2(dataset, features):
     # feature_emb_path = f"{out_path}/feature_embeddings.npy"
     context = summarize_context(features, dataset)
     # context = summarize_context(features, dataset, time_window=300)
+    session_desc = f"Session: {features['src_ip']}:{features['src_port']} → {features['dst_ip']}:{features['dst_port']}, " \
+                f"duration={features['duration']}s, bytes={features['src_bytes']}/{features['dst_bytes']}, " \
+                f"protocol={'TLS' if features.get('ssl_version') else 'Unknown'}, dns={str(features.get('dns_query', ''))[:30]}"
 
-    # 生成当前特征的嵌入
-    current_embedding = encode_features(features)
-    
     if context is None:
         print("No similar traffic patterns available yet.")
         prompt = """The contextual information is missing or insufficient, please respond with:
                 Observation: Insufficient context for behavior analysis.
                 Interpretation: No peer behavior patterns available for comparative reasoning."""
     else:
-        prompt = f"""
-            As a contextual traffic analyst, compare the current session against the following similar sessions from the dataset:
-                {context}\n
-                Focus especially on subtle but meaningful deviations rather than superficial similarities. Consider:\n
-                - Is this session fully consistent with the retrieved examples?\n
-                - Does it deviate in any notable way (e.g., timing regularity, packet structure, flow rates)?\n
-                - Could its similarity be intentional to evade detection (e.g., protocol mimicry)?\n
-                - Could the deviations suggest automation, beaconing, covert tunneling, or other stealthy malicious behavior?
+        if dataset == 'TONIoT':
+            prompt = f"""
+                As a contextual traffic analyst, please be aware of the following prior knowledge:
+                    - The dataset includes nine major categories (Scanning, Reconnaissance, DoS, DDoS, Ransomware, Backdoor, Injection, XSS, Password Cracking, MITM) of attacks targeting IoT/IIoT devices and sensors.
+                    - Scanning attacks originate from IPs like 192.168.1.30–33 and 192.168.1.38 using tools such as Nmap and Nessus.
+                    - DoS/DDoS attacks are launched from 192.168.1.30–31 and 192.168.1.34–39 using Scapy scripts and UFONet.
+                    - Ransomware and Backdoor attacks use Metasploitable3, launched from 192.168.1.33 and 192.168.1.37.
+                    - Injection and XSS attacks involve Bash scripts and tools like XSSer, targeting DVWA and IoT web interfaces.
+                    - Password cracking uses CeWL and Hydra from various IPs such as 192.168.1.30–36, 38.
+                    - MITM attacks use Ettercap and originate from 192.168.1.31–34, involving ARP poisoning and port sniffing.\n
+                    Current Session: {session_desc}\n
+                Now, compare the current session against the following similar sessions from the dataset: {context}\n
+                    Focus especially on subtle but meaningful deviations rather than superficial similarities. Consider:\n
+                    - Is this session fully consistent with the retrieved examples?\n
+                    - Does it deviate in any notable way (e.g., timing regularity, packet structure, flow rates)?\n
+                    - Could its similarity be intentional to evade detection (e.g., protocol mimicry)?\n
+                    - Could the deviations suggest automation, beaconing, covert tunneling, or other stealthy malicious behavior?
 
-            Please provide a **clear, one-sentence, and concise analysis** explaining:
-            - Your comparison with the context.
-            - And any subtle elements regarding whether the session may be benign or malicious.\n
-        """
+                Please provide a **clear, one-sentence, and concise analysis** explaining:
+                - Your comparison with the context.
+                - And any subtle elements regarding whether the session may be benign or malicious.\n
+            """
+        elif dataset == 'DoHBrw':
+            prompt = f"""
+                As a contextual traffic analyst, please be aware of the following prior knowledge:
+                - Benign DoH traffic was generated using browsers such as Firefox and Chrome, accessing top Alexa sites via public DoH servers (e.g., Cloudflare, Google DNS, AdGuard).
+                - Malicious DoH traffic was crafted using tunneling tools such as dns2tcp, DNSCat2, and Iodine, which encapsulate other protocols within DNS-over-HTTPS queries.
+                - Only tunneled malicious DoH behavior is present in this dataset; C2-only behaviors are excluded.\n
+                Current Session: {session_desc}\n
+                Now, compare the current session against the following similar sessions from the dataset: {context}\n
+                    Focus especially on subtle but meaningful deviations rather than superficial similarities. Consider:\n
+                    - Is this session fully consistent with the retrieved examples?\n
+                    - Does it deviate in any notable way (e.g., timing regularity, packet structure, flow rates)?\n
+                    - Could its similarity be intentional to evade detection (e.g., protocol mimicry)?\n
+                    - Could the deviations suggest automation, beaconing, covert tunneling, or other stealthy malicious behavior?
+
+                Please provide a **clear, one-sentence, and concise analysis** explaining:
+                - Your comparison with the context.
+                - And any subtle elements regarding whether the session may be benign or malicious.\n
+            """
+        else:
+            prompt = f"""
+                Current Session:b{session_desc}\n
+                As a contextual traffic analyst, compare the current session against the following similar sessions from the dataset:
+                    {context}\n
+                    Focus especially on subtle but meaningful deviations rather than superficial similarities. Consider:\n
+                    - Is this session fully consistent with the retrieved examples?\n
+                    - Does it deviate in any notable way (e.g., timing regularity, packet structure, flow rates)?\n
+                    - Could its similarity be intentional to evade detection (e.g., protocol mimicry)?\n
+                    - Could the deviations suggest automation, beaconing, covert tunneling, or other stealthy malicious behavior?
+
+                Please provide a **clear, one-sentence, and concise analysis** explaining:
+                - Your comparison with the context.
+                - And any subtle elements regarding whether the session may be benign or malicious.\n
+            """
     return prompt
 
-
-def chat(messages, model, tokenizer, max_tokens=256):
+def chat(messages, model, tokenizer, max_tokens=512):
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
     
@@ -186,78 +239,98 @@ def generate_description(model, tokenizer, prompt):
 _dataset_cache = {}
 
 def summarize_context(feature, dataset_name, max_samples=10):
-    """作用: 分析同一源IP和目标IP之间的历史网络流量模式"""
+    """基于特征嵌入检索相似连接，生成上下文描述（字段缺失自动忽略）"""
     global _dataset_cache
-    
-    # 数据集路径
+
     out_path = f"datasets/{dataset_name}"
     data_path = f"{out_path}/text_data.csv"
-    
+    emb_path = f"{out_path}/outputs/feature_embeddings.npy"
+
     try:
-        # 1. 使用缓存避免重复加载数据集
         if dataset_name not in _dataset_cache:
-            if not os.path.exists(data_path):
-                print(f"数据文件不存在: {data_path}")
-                return f"- No historical data available for analysis"
-                
-            print(f"首次加载数据集: {dataset_name}")
+            if not os.path.exists(data_path) or not os.path.exists(emb_path):
+                print(f"缺失历史数据或嵌入文件: {data_path} / {emb_path}")
+                return "- No historical data available for analysis"
+
+            print(f"首次加载上下文缓存: {dataset_name}")
             df = pd.read_csv(data_path)
             df.fillna('', inplace=True)
-            _dataset_cache[dataset_name] = df
+            embedding_matrix = np.load(emb_path)
+            _dataset_cache[dataset_name] = (df, embedding_matrix)
         else:
-            df = _dataset_cache[dataset_name]
-        
-        # 2. 直接提取关键信息，避免复杂处理
-        src_ip = feature["src_ip"]
-        dst_ip = feature["dst_ip"]
-        
-        # 3. 快速筛选 - 只获取需要的列
-        needed_columns = ["src_ip", "dst_ip", "dst_port", "duration", 
-                         "src_bytes", "dst_bytes", "ssl_version", 
-                         "dns_query", "http_uri"]
-        
-        existing_columns = [col for col in needed_columns if col in df.columns]
-        filtered_df = df[existing_columns]
-        
-        # 4. 简化匹配逻辑
-        # 先尝试快速查找完全匹配的连接对
-        same_pair = (filtered_df["src_ip"] == src_ip) & (filtered_df["dst_ip"] == dst_ip)
-        context_df = filtered_df[same_pair].head(max_samples)
-        
-        # 如果不足3个结果，再加入源IP匹配的记录
-        if len(context_df) < 3:
-            context_df = filtered_df[filtered_df["src_ip"] == src_ip].head(max_samples)
-        
-        # 5. 如果仍然没找到，返回固定消息避免额外处理
-        if context_df.empty:
-            return f"- No similar connection patterns found in dataset\n- First observed communication for this IP pair"
-        
-        # 6. 快速提取统计信息，避免复杂计算
+            df, embedding_matrix = _dataset_cache[dataset_name]
+
+        # 当前流量的嵌入
+        current_embedding = encode_features(feature)
+        sims = cosine_similarity([current_embedding], embedding_matrix)[0]
+        top_k_indices = np.argsort(sims)[-max_samples:][::-1]
+        context_rows = df.iloc[top_k_indices]
+
         result_lines = []
-        result_lines.append(f"- Found {len(context_df)} similar connections")
-        
-        # 7. 只处理确定存在的列，避免错误
-        if "dst_port" in context_df.columns:
-            ports = context_df["dst_port"].astype(str).value_counts().head(3)
-            port_str = ", ".join([f"{p}({c})" for p, c in ports.items()])
-            result_lines.append(f"- Popular destination ports: {port_str}")
-        
-        if "duration" in context_df.columns:
-            try:
-                short_count = (pd.to_numeric(context_df["duration"], errors='coerce') < 1.0).sum()
-                result_lines.append(f"- Short connections (<1s): {short_count}")
-            except:
-                pass
-        
-        # 8. 简化协议检测
-        for protocol, col in [("DNS", "dns_query"), ("HTTP", "http_uri"), ("SSL/TLS", "ssl_version")]:
-            if col in context_df.columns:
-                has_proto = "Yes" if context_df[col].astype(str).str.len().sum() > 0 else "No"
-                result_lines.append(f"- {protocol} traffic observed: {has_proto}")
-        
+        for idx, row in context_rows.iterrows():
+            parts = []
+
+            if 'src_ip' in row and 'src_port' in row and 'dst_ip' in row and 'dst_port' in row:
+                parts.append(f"Session {idx}: src={row['src_ip']}:{row['src_port']} → dst={row['dst_ip']}:{row['dst_port']}")
+
+            if 'duration' in row:
+                parts.append(f"duration={row['duration']}s")
+            if 'src_bytes' in row and 'dst_bytes' in row:
+                parts.append(f"bytes={row['src_bytes']}/{row['dst_bytes']}")
+            if 'ssl_version' in row and pd.notna(row['ssl_version']):
+                parts.append("protocol=TLS")
+            elif 'PacketLengthMean' in row and pd.notna(row['PacketLengthMean']):
+                parts.append(f"avg_pkt_len={row['PacketLengthMean']}")
+            if 'dns_query' in row and pd.notna(row['dns_query']):
+                parts.append(f"dns={str(row['dns_query'])[:30]}")
+
+            result_lines.append(", ".join(parts))
+
         return "\n".join(result_lines)
-            
+
     except Exception as e:
         print(f"Error in summarize_context: {str(e)}")
-        # 出错时返回固定值，而不是None，避免agent_2中的条件判断
         return "- Error analyzing traffic context\n- Proceeding with limited historical data"
+
+# def summarize_context(feature, dataset_name, max_samples=10):
+#     """基于特征嵌入检索相似连接，生成上下文描述"""
+#     global _dataset_cache
+
+#     out_path = f"datasets/{dataset_name}"
+#     data_path = f"{out_path}/text_data.csv"
+#     emb_path = f"{out_path}/outputs/feature_embeddings.npy"
+
+#     try:
+#         if dataset_name not in _dataset_cache:
+#             if not os.path.exists(data_path) or not os.path.exists(emb_path):
+#                 print(f"缺失历史数据或嵌入文件: {data_path} / {emb_path}")
+#                 return "- No historical data available for analysis"
+
+#             print(f"首次加载上下文缓存: {dataset_name}")
+#             df = pd.read_csv(data_path)
+#             df.fillna('', inplace=True)
+#             embedding_matrix = np.load(emb_path)
+#             _dataset_cache[dataset_name] = (df, embedding_matrix)
+#         else:
+#             df, embedding_matrix = _dataset_cache[dataset_name]
+
+#         # 当前流量的嵌入
+#         current_embedding = encode_features(feature)
+#         sims = cosine_similarity([current_embedding], embedding_matrix)[0]
+#         top_k_indices = np.argsort(sims)[-max_samples:][::-1]
+#         context_rows = df.iloc[top_k_indices]
+
+#         result_lines = []
+#         for idx, row in context_rows.iterrows():
+#             line = f"Session {idx}: src={row['src_ip']}:{row['src_port']} to dst={row['dst_ip']}:{row['dst_port']}, " \
+#                    f"duration={row['duration']}s, bytes={row['src_bytes']}/{row['dst_bytes']}, " \
+#                    f"protocol={'TLS' if row.get('ssl_version') else 'Unknown'}, dns={str(row.get('dns_query', ''))[:30]}"
+#             result_lines.append(line)
+
+#         return "\n".join(result_lines)
+
+#     except Exception as e:
+#         print(f"Error in summarize_context: {str(e)}")
+#         return "- Error analyzing traffic context\n- Proceeding with limited historical data"
+
+

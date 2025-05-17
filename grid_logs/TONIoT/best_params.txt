@@ -1,8 +1,0 @@
-Best parameter combination:
-lr: 0.0001
-dropout: 0.3
-weight_decay: 0.0005
-batch: 16
-hid: 64
-dc_loss: 1
-Val Accuracy: 0.8182

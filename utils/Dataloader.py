@@ -54,13 +54,13 @@ class ECMLDataset(Dataset):
         return x_views, y
 
 
-def generate_random_partition_indices(num_nodes, train_ratio=0.03, val_ratio=0.47, test_ratio=0.5):
-    test_ratio = train_ratio*5
+def generate_random_partition_indices(num_nodes, train_ratio=0.03, val_ratio=0.47, test_ratio=0.5, seed=9999):
+    test_ratio = train_ratio*(5)
     val_ratio = 1-train_ratio-test_ratio
     assert train_ratio + val_ratio + test_ratio == 1.0, "Ratios must sum to 1."
 
     all_indices = np.arange(num_nodes)
-    np.random.seed(9977) # CIC-IDS 117
+    np.random.seed(seed) # CIC-IDS 117
     np.random.shuffle(all_indices)
 
     train_size = int(num_nodes * train_ratio)
@@ -144,7 +144,7 @@ def load_data(args, DATA_PATH, logger=None):
     # data = graph[0]
 
     num_smaples = data.num_samples
-    train_indices, val_indices, test_indices = generate_random_partition_indices(num_smaples, train_ratio=args.train_ratio)
+    train_indices, val_indices, test_indices = generate_random_partition_indices(num_smaples, train_ratio=args.train_ratio, seed=args.seed)
     data.test = test_indices
     # data.train = train_indices
     data.val = val_indices

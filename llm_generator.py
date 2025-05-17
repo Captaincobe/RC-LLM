@@ -18,23 +18,37 @@ print(device)
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 
+import pandas as pd
+import numpy as np
+from utils.utils import encode_features
+
+
 # mistralai/Mistral-7B-Instruct-v0.2
 # tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen2-7B-Instruct", trust_remote_code=True) # {"": device}
 if args.pretrain_model == "qwen3":
     # pretrain_model = "Qwen/Qwen2.5-7B-Instruct"
     pretrain_model = "Qwen/Qwen3-8B"
+if args.pretrain_model == "qwen":
+    pretrain_model = "Qwen/Qwen2.5-7B-Instruct"
 elif args.pretrain_model == "mistral":
     pretrain_model = "mistralai/Mistral-7B-Instruct-v0.2"
 elif args.pretrain_model == "zephyr":
-    pretrain_model = "HuggingFaceH4/zephyr-7b-alpha"
+    pretrain_model = "HuggingFaceH4/zephyr-7b-beta"
 elif args.pretrain_model == "gemma":
     pretrain_model = "google/gemma-3-27b-it"
 elif args.pretrain_model == "gpt3":
     pretrain_model = "TurkuNLP/gpt3-finnish-small"  
 
-
 tokenizer = AutoTokenizer.from_pretrained(pretrain_model, trust_remote_code=True)  # QwQ-7B  Mistral-7B-Instruct-v0.3 google/gemma-3-27b-it  HuggingFaceH4/zephyr-7b-alpha TurkuNLP/gpt3-finnish-small
-model = AutoModelForCausalLM.from_pretrained(pretrain_model, device_map="auto", low_cpu_mem_usage=True, trust_remote_code=True, offload_buffers=True)
+# model = AutoModelForCausalLM.from_pretrained(pretrain_model, device_map=device, low_cpu_mem_usage=True, trust_remote_code=True, offload_buffers=True)
+model = AutoModelForCausalLM.from_pretrained(
+    pretrain_model,
+    trust_remote_code=True,
+    device_map="auto",              
+    torch_dtype=torch.float16,    
+    low_cpu_mem_usage=True
+)
+print("✅ 模型已加载到设备：", next(model.parameters()).device)
 # encoder_model = SentenceTransformer("all-MiniLM-L6-v2")
 if tokenizer.pad_token_id is None:
     tokenizer.pad_token_id = tokenizer.eos_token_id
@@ -104,7 +118,7 @@ else:
             
             description_1 = generate_description(model, tokenizer, prompt_1) 
             description_2 = generate_description(model, tokenizer, prompt_2)
-            
+
             # 保存两个agent的描述
             batch_agent1_descriptions.append(description_1)
             batch_agent2_descriptions.append(description_2)

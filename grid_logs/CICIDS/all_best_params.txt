@@ -1,7 +1,0 @@
-Best parameter combination:
-lr: 0.0005
-dropout: 0.3
-weight_decay: 0.0005
-hid: 128
-dc_loss: 0
-Val Accuracy: 0.9217

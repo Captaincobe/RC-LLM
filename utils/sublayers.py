@@ -59,8 +59,8 @@ class MLP_encoder(nn.Module):
         if self.use_bn:
             x = self.bn1(x)
         x = F.relu(self.Linear1(x))
-        if self.use_bn:
-            x = self.bn2(x)
+        # if self.use_bn:
+        #     x = self.bn2(x)
         x = F.relu(self.Linear2(x))
         if self.use_bn:
             x = self.bn3(x)

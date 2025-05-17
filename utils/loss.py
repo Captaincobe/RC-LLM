@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import math
 def KL(alpha, c):
     beta = torch.ones((1, c)).to(device=alpha.device)
     S_alpha = torch.sum(alpha, dim=1, keepdim=True)
@@ -39,7 +40,8 @@ def get_dc_loss(alphas, device):
     for i in range(num_views):
         for j in range(i + 1, num_views):
             pd = torch.sum(torch.abs(p[i] - p[j]) / 2, dim=1)  # probability disagreement
-            cc = (1 - u[i]) * (1 - u[j])                       # confidence
+            cc = torch.sqrt((1 - u[i]) * (1 - u[j]))                       # confidence
+            # cc = 1
             dc_sum += torch.sum(pd * cc)
             count += batch_size
 
@@ -71,10 +73,12 @@ def get_soft_dc_loss(alphas, device, beta=1.0):
             kl_ij = F.kl_div(p[i].log(), p[j], reduction='none').sum(dim=1)
             kl_ji = F.kl_div(p[j].log(), p[i], reduction='none').sum(dim=1)
             kl = (kl_ij + kl_ji) / 2  # D_KL
-
+            # 保存 KL 数据到文件（可以做 Case Study）
+            # np.save("kl_scores.npy", kl.detach().cpu().numpy())
             # Soft Confidence
-            # 方式A：乘积开根号
-            conf = torch.sqrt((1 - u[i]) * (1 - u[j]))  # shape = (B,)
+            # conf = torch.sqrt((1 - u[i]) * (1 - u[j]))  # shape = (B,)
+            conf = (1 - u[i]) * (1 - u[j])
+            # conf = 1.0
             # 或 方式B：sigmoid权重
             # conf = torch.sigmoid(beta * ((1 - u[i]) + (1 - u[j])) / 2)
 
